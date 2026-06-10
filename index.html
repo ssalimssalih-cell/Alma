@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#f39c12">
-    <title>Chicken Way - Restaurant</title>
+    <meta name="theme-color" content="#6F4E37">
+    <meta name="description" content="Système de gestion pour café et restaurant - Alma Coffee Shop">
+    <title>Alma Coffee Shop</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -21,9 +23,9 @@
     <div id="authPage" class="login-wrapper">
         <div class="login-container" id="loginContainer">
             <div class="login-brand">
-                <div class="brand-icon"><img src="logo.png" alt="Chicken Way" class="brand-logo"></div>
-                <h1>Chicken <span>Way</span></h1>
-                <p style="color:rgba(255,255,255,0.8);">Gestion complète • Restaurant • Livraison</p>
+                <div class="brand-icon"><img src="logo.png" alt="Alma Coffee Shop" class="brand-logo"></div>
+                <h1><span>Alma</span> Coffee Shop</h1>
+                <p style="color:rgba(255,255,255,0.8); font-size:0.9rem;">Gestion complète • Café • Pâtisseries</p>
             </div>
             <div class="login-form">
                 <h2>🔐 Connexion</h2>
@@ -37,9 +39,9 @@
         </div>
         <div class="register-container hidden" id="registerContainer">
             <div class="register-brand">
-                <div class="brand-icon"><img src="logo.png" alt="Chicken Way" class="brand-logo"></div>
-                <h1>Chicken <span>Way</span></h1>
-                <p>Inscription rapide</p>
+                <div class="brand-icon"><img src="logo.png" alt="Alma Coffee Shop" class="brand-logo"></div>
+                <h1><span>Alma</span> Coffee Shop</h1>
+                <p style="color:rgba(255,255,255,0.8);">Inscription rapide</p>
             </div>
             <div class="register-form">
                 <h2>📝 Créer un compte</h2>
@@ -65,7 +67,7 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo"><img src="logo.png" alt="Logo" class="sidebar-logo-img"></div>
-                <h2>Chicken <span>Way</span></h2>
+                <h2>Alma <span>Coffee</span></h2>
                 <div class="sidebar-subtitle">GESTION</div>
             </div>
             <div class="sidebar-nav">
@@ -76,12 +78,12 @@
             </div>
             <div class="sidebar-footer">
                 <div class="user-info" id="sidebarUserInfo"><i class="fas fa-user-circle"></i> <span>Chargement...</span></div>
-                <div id="sidebarRole" style="font-size:0.7rem; color:#f39c12; margin-top:5px;"></div>
+                <div id="sidebarRole" style="font-size:0.7rem; color:#A67C52; margin-top:5px;"></div>
             </div>
         </div>
         <div class="main-content">
             <div class="page-header">
-                <div class="header-title"><i class="fas fa-th-large"></i><h2 id="pageTitle">Dashboard</h2></div>
+                <div class="header-title"><i class="fas fa-coffee"></i><h2 id="pageTitle">Dashboard</h2></div>
             </div>
             <div id="dynamicContent"></div>
         </div>
@@ -94,12 +96,12 @@
         <div class="sidebar" id="clientSidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo"><img src="logo.png" alt="Logo" class="sidebar-logo-img"></div>
-                <h2>Chicken <span>Way</span></h2>
+                <h2>Alma <span>Coffee</span></h2>
                 <div class="sidebar-subtitle">BIENVENUE</div>
             </div>
             <div class="sidebar-nav">
                 <ul>
-                    <li class="nav-item active" onclick="clientNavigate('commander')"><i class="fas fa-utensils"></i> Commander</li>
+                    <li class="nav-item active" onclick="clientNavigate('commander')"><i class="fas fa-coffee"></i> Commander</li>
                     <li class="nav-item" onclick="clientNavigate('historique')"><i class="fas fa-history"></i> Historique</li>
                     <li class="nav-item" onclick="clientNavigate('parametres')"><i class="fas fa-user-cog"></i> Paramètres</li>
                     <li class="nav-item logout-item" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Déconnexion</li>
@@ -111,7 +113,7 @@
         </div>
         <div class="main-content">
             <div class="page-header">
-                <div class="header-title"><i class="fas fa-utensils"></i><h2 id="clientPageTitle">Commander</h2></div>
+                <div class="header-title"><i class="fas fa-coffee"></i><h2 id="clientPageTitle">Commander</h2></div>
             </div>
             <div id="clientDynamicContent"></div>
         </div>
