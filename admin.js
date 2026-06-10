@@ -134,7 +134,7 @@ function renderPendingTable() {
         row += '<td>' + escapeHtml(x.role) + '</td>';
         row += '<td>' + dt + '</td>';
         row += '<td><button class="btn-add" style="padding:4px 10px;font-size:0.7rem;margin-right:5px;" onclick="approveUser(\'' + x.id + '\')"><i class="fas fa-check"></i> Accepter</button><button class="btn-delete" style="padding:4px 10px;font-size:0.7rem;" onclick="rejectUser(\'' + x.id + '\')"><i class="fas fa-times"></i> Refuser</button></td>';
-        row += '<tr>';
+        row += '</tr>';
         tb.innerHTML += row;
     });
 }
@@ -633,7 +633,7 @@ function renderProductsTable() {
     var pageData = getPageData('products', data);
     tb.innerHTML = '';
     if (pageData.length === 0) {
-        tb.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:30px;">Aucun produit</td></tr>';
+        tb.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:30px;">Aucun produit</td><tr>';
         document.getElementById('productsPagination').innerHTML = '';
         return;
     }
@@ -899,7 +899,7 @@ function deleteClient(id) {
 // ==================== FOURNISSEURS ====================
 function loadFournisseursPage(c) {
     c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-truck"></i> Fournisseurs</h3><button class="btn-add" onclick="openFournisseurForm()"><i class="fas fa-plus"></i> Ajouter</button></div>' +
-        '<div class="table-container"><table class="data-table" id="fournisseursTable" style="font-size:0.6rem;"><thead></td>' +
+        '<div class="table-container"><table class="data-table" id="fournisseursTable" style="font-size:0.6rem;"><thead><tr>' +
         makeSortableHeader('fournisseurs', 'id', 'ID', 'loadFournisseurs') +
         makeSortableHeader('fournisseurs', 'nom', 'Nom', 'loadFournisseurs') +
         makeSortableHeader('fournisseurs', 'prenom', 'Prénom', 'loadFournisseurs') +
@@ -947,7 +947,7 @@ function renderFournisseursTable() {
         var d = pageData[i];
         var dateCreated = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleDateString('fr-FR') + ' ' + new Date(d.createdAt.seconds * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-';
         var categories = d.categories ? d.categories.join(', ') : '-';
-        tb.innerHTML += '<td>' +
+        tb.innerHTML += '<tr>' +
             '<td><small>' + (d.id || '').substring(0, 6) + '</small></td>' +
             '<td><strong>' + escapeHtml(d.nom || '') + '</strong></td>' +
             '<td>' + escapeHtml(d.prenom || '') + '</td>' +
@@ -1460,27 +1460,95 @@ async function markCreditPaid(cid) {
 
 // ==================== OPTIONS ====================
 function loadOptionsPage(c) {
-    if (!window.currentUserData || window.currentUserData.userData.role !== 'admin') { c.innerHTML = '<p>Accès refusé</p>'; return; }
-    c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-lock"></i> Sécurité</h3><button class="btn-add" onclick="toggleChangePasswordForm()"><i class="fas fa-key"></i> Changer le mot de passe</button></div>' +
-        '<div id="changePasswordForm" class="hidden" style="margin-top:15px;"><div class="form-row"><div class="form-group"><label>Mot de passe actuel</label><input type="password" id="currentPassword" placeholder="Mot de passe actuel"></div></div>' +
-        '<div class="form-row"><div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="newPassword" placeholder="6 caractères minimum"></div><div class="form-group"><label>Confirmer le mot de passe</label><input type="password" id="confirmPassword" placeholder="Confirmer"></div></div>' +
-        '<button class="btn-save" onclick="changeAdminPassword()" style="float:left;margin-top:10px;"><i class="fas fa-save"></i> Changer le mot de passe</button></div></div>' +
-        '<div class="content-card"><div class="card-header"><h3><i class="fas fa-users"></i> Utilisateurs</h3><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">' +
-        '<input type="text" id="usersSearchInput" placeholder="🔍 Rechercher (nom, email, username)..." style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; width:220px;" onkeyup="usersSearchQuery = this.value.trim().toLowerCase(); currentPages.users = 1; renderUsersTable();">' +
-        '<button class="btn-add" onclick="loadUsersList()"><i class="fas fa-sync"></i> Actualiser</button></div></div>' +
-        '<div class="table-container"><table class="data-table" id="usersTable" style="font-size:0.85rem;"><thead></tr>' +
-        makeSortableHeader('users', 'username', 'Username', 'renderUsersTable') +
-        makeSortableHeader('users', 'nom', 'Nom', 'renderUsersTable') +
-        makeSortableHeader('users', 'email', 'Email', 'renderUsersTable') +
-        makeSortableHeader('users', 'role', 'Rôle', 'renderUsersTable') +
-        makeSortableHeader('users', 'authorized', 'Statut', 'renderUsersTable') +
-        '<th>Actions</th>' +
-        '</thead><tbody></tbody>' +
-        '</div><div id="usersPagination"></div>' +
-        '</div>';
+    if (!window.currentUserData || window.currentUserData.userData.role !== 'admin') {
+        c.innerHTML = '<p>Accès refusé</p>';
+        return;
+    }
+
+    c.innerHTML = `
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#fef3c7;"><i class="fas fa-clock" style="color:#d97706;"></i></div>
+            <div class="stat-info"><span>En attente</span><span class="stat-value" id="pendingCount">0</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#dcfce7;"><i class="fas fa-check-circle" style="color:#16a34a;"></i></div>
+            <div class="stat-info"><span>Autorisés</span><span class="stat-value" id="authorizedCount">0</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#e0e7ff;"><i class="fas fa-users" style="color:#4f46e5;"></i></div>
+            <div class="stat-info"><span>Total</span><span class="stat-value" id="totalUsers">0</span></div>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="card-header"><h3><i class="fas fa-lock"></i> Sécurité</h3>
+        <button class="btn-add" onclick="toggleChangePasswordForm()"><i class="fas fa-key"></i> Changer le mot de passe</button></div>
+        <div id="changePasswordForm" class="hidden" style="margin-top:15px;">
+            <div class="form-row">
+                <div class="form-group"><label>Mot de passe actuel</label><input type="password" id="currentPassword" placeholder="Mot de passe actuel"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="newPassword" placeholder="6 caractères minimum"></div>
+                <div class="form-group"><label>Confirmer le mot de passe</label><input type="password" id="confirmPassword" placeholder="Confirmer"></div>
+            </div>
+            <button class="btn-save" onclick="changeAdminPassword()" style="float:left;margin-top:10px;"><i class="fas fa-save"></i> Changer le mot de passe</button>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="card-header">
+            <h3><i class="fas fa-bullhorn"></i> Programme marketing</h3>
+            <button class="btn-add" onclick="toggleMarketingProgram()"><i class="fas fa-cog"></i> Gérer le programme de fidélité</button>
+        </div>
+        <div id="marketingProgramContent" class="hidden" style="margin-top:15px;">
+            <div style="display:flex; align-items:flex-end; gap:20px; flex-wrap:wrap;">
+                <div class="form-group">
+                    <label>Activer le programme</label>
+                    <select id="fideliteActifSelect">
+                        <option value="1">✅ Actif</option>
+                        <option value="0">❌ Inactif</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Points par vente</label>
+                    <input type="number" id="fidelitePointsInput" value="1" min="1" step="1" style="width:100px;">
+                </div>
+                <button class="btn-save" onclick="saveFideliteSettings()" style="float:none;margin:0;height:44px;"><i class="fas fa-save"></i> Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="card-header">
+            <h3><i class="fas fa-users"></i> Utilisateurs</h3>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="text" id="usersSearchInput" placeholder="🔍 Rechercher (nom, email, username)..." style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; width:220px;" onkeyup="usersSearchQuery = this.value.trim().toLowerCase(); currentPages.users = 1; renderUsersTable();">
+                <button class="btn-add" onclick="loadUsersList()"><i class="fas fa-sync"></i> Actualiser</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table class="data-table" id="usersTable" style="font-size:0.85rem;">
+                <thead><tr>
+                    ${makeSortableHeader('users', 'username', 'Username', 'renderUsersTable')}
+                    ${makeSortableHeader('users', 'nom', 'Nom', 'renderUsersTable')}
+                    ${makeSortableHeader('users', 'email', 'Email', 'renderUsersTable')}
+                    ${makeSortableHeader('users', 'role', 'Rôle', 'renderUsersTable')}
+                    ${makeSortableHeader('users', 'authorized', 'Statut', 'renderUsersTable')}
+                    <th>Actions</th>
+                </tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="usersPagination"></div>
+    </div>
+    `;
+
     loadUsersList();
+    loadFideliteSettings();
 }
 
+// ==================== GESTION DES UTILISATEURS ====================
 function loadUsersList() {
     db.collection('users').get().then(function(sn) {
         allUsersData = [];
@@ -1559,6 +1627,7 @@ function deleteUserPermanently(uid) {
     }
 }
 
+// ==================== GESTION MOT DE PASSE ====================
 function toggleChangePasswordForm() {
     var form = document.getElementById('changePasswordForm');
     if (form) form.classList.toggle('hidden');
@@ -1587,6 +1656,54 @@ async function changeAdminPassword() {
         if (error.code === 'auth/wrong-password') alert('❌ Mot de passe actuel incorrect.');
         else alert('Erreur : ' + error.message);
     }
+}
+
+// ==================== MARKETING / FIDÉLITÉ ====================
+function toggleMarketingProgram() {
+    var div = document.getElementById('marketingProgramContent');
+    if (div) {
+        if (div.classList.contains('hidden')) {
+            div.classList.remove('hidden');
+            loadFideliteSettings();
+        } else {
+            div.classList.add('hidden');
+        }
+    }
+}
+
+async function loadFideliteSettings() {
+    let active = true;
+    let points = 1;
+    try {
+        const doc = await db.collection('settings').doc('fidelite').get();
+        if (doc.exists) {
+            active = doc.data().active === true;
+            points = doc.data().pointsParVente || 1;
+        }
+    } catch (e) {
+        active = localStorage.getItem('fidelite_active') === 'true';
+        points = parseInt(localStorage.getItem('fidelite_points')) || 1;
+    }
+    var actifSelect = document.getElementById('fideliteActifSelect');
+    var pointsInput = document.getElementById('fidelitePointsInput');
+    if (actifSelect) actifSelect.value = active ? '1' : '0';
+    if (pointsInput) pointsInput.value = points;
+}
+
+async function saveFideliteSettings() {
+    var active = document.getElementById('fideliteActifSelect').value === '1';
+    var points = parseInt(document.getElementById('fidelitePointsInput').value) || 1;
+    try {
+        await db.collection('settings').doc('fidelite').set({
+            active: active,
+            pointsParVente: points
+        }, { merge: true });
+    } catch (e) {
+        console.warn('Firestore inaccessible, sauvegarde locale');
+    }
+    localStorage.setItem('fidelite_active', active);
+    localStorage.setItem('fidelite_points', points);
+    alert('✅ Paramètres de fidélité enregistrés');
 }
 
 console.log('☕ Alma Coffee Shop - Admin JS complet');
