@@ -1,4 +1,4 @@
-// ==================== ADMIN.JS COMPLET (TOUT INCLUS, RIEN PERDU) ====================
+// ==================== ADMIN.JS - ALMA COFFEE SHOP (PARTIE 1) ====================
 var editingId = null;
 var currentCollection = '';
 var selectedCategoryFilter = '';
@@ -6,7 +6,6 @@ var sortOrders = {};
 var clientSearchQuery = '';
 var pendingUsersData = [];
 
-// Données pour les listes
 var allCategoriesData = [];
 var allProductsData = [];
 var allClientsData = [];
@@ -17,10 +16,6 @@ var allVentesData = [];
 var allCreditsData = [];
 var allUsersData = [];
 
-// Variable pour l'édition des catégories (image)
-var editCategoryData = null;
-
-// Pagination
 var currentPages = {
     categories: 1,
     products: 1,
@@ -34,22 +29,19 @@ var currentPages = {
 };
 var itemsPerPage = 15;
 
-// Filtres
 var ventesPeriod = 'all', ventesSearch = '';
 var creditsPeriod = 'all', creditsSearch = '';
 var commandesPeriod = 'all', commandesSearch = '';
 var usersSearchQuery = '';
 
-// Liste pour les fournisseurs
 var fournisseurCategoriesList = ['Alimentaire', 'Boissons', 'Emballage', 'Entretien', 'Viandes', 'Légumes', 'Sauces', 'Autre'];
-
-// Stock temporaire pour le formulaire produit (rempli par loadStockForProductForm)
 var allStockData = [];
 
 // ==================== DASHBOARD ====================
 function loadDashboardPage(c) {
-    c.innerHTML = '<div class="stats-grid"><div class="stat-card"><div class="stat-icon"><i class="fas fa-utensils"></i></div><div class="stat-info"><span class="stat-label">Produits</span><span class="stat-value" id="productsCount">0</span></div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><span class="stat-label">Clients</span><span class="stat-value" id="clientsCount">0</span></div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-layer-group"></i></div><div class="stat-info"><span class="stat-label">Catégories</span><span class="stat-value" id="categoriesCount">0</span></div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-shopping-cart"></i></div><div class="stat-info"><span class="stat-label">Ventes</span><span class="stat-value" id="ventesCount">0</span></div></div></div><div class="content-card"><div class="card-header"><h3><i class="fas fa-bell"></i> Inscriptions en attente</h3><button class="btn-add" onclick="loadPendingRegistrations()"><i class="fas fa-sync"></i> Actualiser</button></div><div id="pendingRegistrations">Chargement...</div></div>';
-    loadDashboardStats(); loadPendingRegistrations();
+    c.innerHTML = '<div class="stats-grid"><div class="stat-card"><div class="stat-icon"><i class="fas fa-coffee"></i></div><div class="stat-info"><span class="stat-label">Produits</span><span class="stat-value" id="productsCount">0</span></div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><span class="stat-label">Clients</span><span class="stat-value" id="clientsCount">0</span></div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-layer-group"></i></div><div class="stat-info"><span class="stat-label">Catégories</span><span class="stat-value" id="categoriesCount">0</span></div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-shopping-cart"></i></div><div class="stat-info"><span class="stat-label">Ventes</span><span class="stat-value" id="ventesCount">0</span></div></div></div><div class="content-card"><div class="card-header"><h3><i class="fas fa-bell"></i> Inscriptions en attente</h3><button class="btn-add" onclick="loadPendingRegistrations()"><i class="fas fa-sync"></i> Actualiser</button></div><div id="pendingRegistrations">Chargement...</div></div>';
+    loadDashboardStats(); 
+    loadPendingRegistrations();
 }
 
 function loadDashboardStats() {
@@ -107,9 +99,9 @@ function renderPendingTable() {
     data.forEach(function(x) {
         var dt = x.createdAt ? new Date(x.createdAt.seconds * 1000).toLocaleDateString('fr-FR') : 'N/A';
         var row = '<tr>';
-        row += '<td><strong>' + x.prenom + '</strong> (@' + x.data.username + ')</td>';
-        row += '<td>' + x.email + '</td>';
-        row += '<td>' + x.role + '</td>';
+        row += '<td><strong>' + escapeHtml(x.prenom) + '</strong> (@' + escapeHtml(x.data.username) + ')</td>';
+        row += '<td>' + escapeHtml(x.email) + '</td>';
+        row += '<td>' + escapeHtml(x.role) + '</td>';
         row += '<td>' + dt + '</td>';
         row += '<td><button class="btn-add" style="padding:4px 10px;font-size:0.7rem;margin-right:5px;" onclick="approveUser(\'' + x.id + '\')"><i class="fas fa-check"></i> Accepter</button><button class="btn-delete" style="padding:4px 10px;font-size:0.7rem;" onclick="rejectUser(\'' + x.id + '\')"><i class="fas fa-times"></i> Refuser</button></td>';
         row += '</tr>';
@@ -189,7 +181,16 @@ function closeModal() {
     editCategoryData = null;
 }
 
-// Compression des images (max 600x600, qualité 60%)
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
 function fileToBase64(file, callback, maxWidth, maxHeight, quality) {
     if (!file) { callback(null); return; }
     maxWidth = maxWidth || 600;
@@ -236,7 +237,6 @@ function previewImage(inp, pid) {
     }
 }
 
-// saveDocument sans refresh automatique
 async function saveDocument(cn, data, cb) {
     try {
         let resultId;
@@ -252,7 +252,6 @@ async function saveDocument(cn, data, cb) {
     } catch (err) { alert('Erreur: ' + err.message); }
 }
 
-// Suppression locale immédiate (catégories, produits, clients)
 async function deleteDocument(cn, id) {
     if (confirm('Confirmer la suppression ?')) {
         await CacheDB.write(cn, id, null, 'delete');
@@ -292,7 +291,7 @@ function openEditForm(cn, data) {
     else if (cn === 'fournisseurs') openFournisseurForm(data);
     else if (cn === 'depenses') openDepenseForm(data);
 }
-
+// ==================== ADMIN.JS - ALMA COFFEE SHOP (PARTIE 2) ====================
 // ==================== SYSTÈME DE TRI ====================
 function sortTableData(tableName, field, loadFn) {
     if (!sortOrders[tableName]) sortOrders[tableName] = {};
@@ -305,7 +304,7 @@ function sortTableData(tableName, field, loadFn) {
 
 function getSortIcon(tableName, field) {
     if (!sortOrders[tableName] || !sortOrders[tableName][field]) return '<i class="fas fa-sort" style="font-size:0.5rem;margin-left:2px;opacity:0.3;cursor:pointer;"></i>';
-    return sortOrders[tableName][field] === 'asc' ? '<i class="fas fa-sort-up" style="font-size:0.55rem;margin-left:2px;color:#f39c12;"></i>' : '<i class="fas fa-sort-down" style="font-size:0.55rem;margin-left:2px;color:#f39c12;"></i>';
+    return sortOrders[tableName][field] === 'asc' ? '<i class="fas fa-sort-up" style="font-size:0.55rem;margin-left:2px;color:#A67C52;"></i>' : '<i class="fas fa-sort-down" style="font-size:0.55rem;margin-left:2px;color:#A67C52;"></i>';
 }
 
 function applySort(tableName, data, defaultField) {
@@ -460,10 +459,10 @@ async function renderCategoriesTable() {
         var d = pageData[i];
         var pc = 0;
         try { var ps = await db.collection('products').where('categorie', '==', d.nom).get(); pc = ps.size; } catch(e){}
-        var im = d.imageBase64 ? '<img src="' + d.imageBase64 + '" style="width:35px;height:35px;object-fit:cover;border-radius:6px;">' : '<i class="fas fa-folder fa-2x" style="color:#f39c12;"></i>';
+        var im = d.imageBase64 ? '<img src="' + d.imageBase64 + '" style="width:35px;height:35px;object-fit:cover;border-radius:6px;">' : '<i class="fas fa-folder fa-2x" style="color:#A67C52;"></i>';
         var pcol = (d.profit || 0) >= 0 ? '#16a34a' : '#dc2626';
         var recetteBadge = d.recette ? '<span class="status-success">✅ Oui</span>' : '<span class="status-warning">❌ Non</span>';
-        tb.innerHTML += '<tr><td>' + im + '</td><td><strong>' + (d.nom||'') + '</strong></td><td>' + (d.description||'-') + '</td><td>' + (d.ca||0).toFixed(2)+' MAD</td><td style="color:'+pcol+';">'+(d.profit||0).toFixed(2)+' MAD</td><td>'+pc+'</td><td>'+recetteBadge+'</td><td><button class="btn-edit" onclick="editDocument(\'categories\',\''+d.id+'\')"><i class="fas fa-edit"></i></button> <button class="btn-delete" onclick="deleteDocument(\'categories\',\''+d.id+'\')"><i class="fas fa-trash"></i></button></td></tr>';
+        tb.innerHTML += '<tr><td>' + im + '</td><td><strong>' + escapeHtml(d.nom||'') + '</strong></td><td>' + escapeHtml(d.description||'-') + '</td><td>' + (d.ca||0).toFixed(2)+' MAD</td><td style="color:'+pcol+';">'+(d.profit||0).toFixed(2)+' MAD</td><td>'+pc+'</td><td>'+recetteBadge+'</td><td><button class="btn-edit" onclick="editDocument(\'categories\',\''+d.id+'\')"><i class="fas fa-edit"></i></button> <button class="btn-delete" onclick="deleteDocument(\'categories\',\''+d.id+'\')"><i class="fas fa-trash"></i></button></td></tr>';
     }
     document.getElementById('categoriesPagination').innerHTML = getPaginationHTML('categories', data.length);
 }
@@ -499,8 +498,8 @@ function saveCategory() {
     };
     if (f) fileToBase64(f, sf); else sf(null);
 }
-
-// ==================== PRODUITS (AVEC INGRÉDIENTS) ====================
+// ==================== ADMIN.JS - ALMA COFFEE SHOP (PARTIE 3) ====================
+// ==================== PRODUITS ====================
 async function loadStockForProductForm() {
     if (typeof allStockData === 'undefined' || allStockData.length === 0) {
         try {
@@ -517,7 +516,7 @@ function renderIngredientRow(index, ing) {
     if (typeof allStockData !== 'undefined') {
         allStockData.forEach(function(s) {
             var selected = (ing.idStock === s.id) ? 'selected' : '';
-            stockOptions += '<option value="' + s.id + '" ' + selected + '>' + s.nom + ' (' + (s.unite||'') + ')</option>';
+            stockOptions += '<option value="' + s.id + '" ' + selected + '>' + escapeHtml(s.nom) + ' (' + (s.unite||'') + ')</option>';
         });
     }
     return '<div class="ingredient-row" style="display:flex; gap:8px; align-items:center;">' +
@@ -548,7 +547,7 @@ function updateIngredientUnit(selectEl) {
 }
 
 function loadProductsPage(c) {
-    c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-utensils"></i> Produits</h3><div style="display:flex;gap:10px;flex-wrap:wrap;"><select id="categoryFilter" onchange="filterProducts()"><option value="">Toutes catégories</option></select><button class="btn-add" onclick="openProductForm()"><i class="fas fa-plus"></i> Nouveau</button></div></div><div class="table-container"><table class="data-table" id="productsTable" style="font-size:0.7rem;"><thead><tr><th>Img</th>'+makeSortableHeader('products','nom','Nom','loadProducts')+makeSortableHeader('products','categorie','Catégorie','loadProducts')+makeSortableHeader('products','prixAchat','Achat','loadProducts')+makeSortableHeader('products','prixVente','Vente','loadProducts')+makeSortableHeader('products','prixPromo','Promo','loadProducts')+makeSortableHeader('products','profit','Profit','loadProducts')+makeSortableHeader('products','stock','Stock','loadProducts')+makeSortableHeader('products','vendues','Vendues','loadProducts')+makeSortableHeader('products','ca','CA','loadProducts')+makeSortableHeader('products','disponible','Dispo','loadProducts')+'<th>Temps</th><th>Desc</th><th>Actions</th></tr></thead><tbody></tbody></table></div><div id="productsPagination"></div></div>';
+    c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-coffee"></i> Produits</h3><div style="display:flex;gap:10px;flex-wrap:wrap;"><select id="categoryFilter" onchange="filterProducts()"><option value="">Toutes catégories</option></select><button class="btn-add" onclick="openProductForm()"><i class="fas fa-plus"></i> Nouveau</button></div></div><div class="table-container"><table class="data-table" id="productsTable" style="font-size:0.7rem;"><thead><tr><th>Img</th>'+makeSortableHeader('products','nom','Nom','loadProducts')+makeSortableHeader('products','categorie','Catégorie','loadProducts')+makeSortableHeader('products','prixAchat','Achat','loadProducts')+makeSortableHeader('products','prixVente','Vente','loadProducts')+makeSortableHeader('products','prixPromo','Promo','loadProducts')+makeSortableHeader('products','profit','Profit','loadProducts')+makeSortableHeader('products','stock','Stock','loadProducts')+makeSortableHeader('products','vendues','Vendues','loadProducts')+makeSortableHeader('products','ca','CA','loadProducts')+makeSortableHeader('products','disponible','Dispo','loadProducts')+'<th>Temps</th><th>Desc</th><th>Actions</th><tr></thead><tbody></tbody></table></div><div id="productsPagination"></div></div>';
     loadCategoriesInFilter(); loadProducts();
 }
 
@@ -558,7 +557,7 @@ async function loadCategoriesInFilter() {
     try {
         var sn = await db.collection('categories').get();
         s.innerHTML = '<option value="">Toutes catégories</option>';
-        sn.forEach(function(d) { s.innerHTML += '<option value="'+d.data().nom+'">'+d.data().nom+'</option>'; });
+        sn.forEach(function(d) { s.innerHTML += '<option value="'+escapeHtml(d.data().nom)+'">'+escapeHtml(d.data().nom)+'</option>'; });
     } catch(e){}
 }
 
@@ -600,11 +599,11 @@ function renderProductsTable() {
     }
     for (var i = 0; i < pageData.length; i++) {
         var d = pageData[i];
-        var im = d.imageBase64 ? '<img src="'+d.imageBase64+'" style="width:30px;height:30px;object-fit:cover;border-radius:4px;">' : '<i class="fas fa-utensils" style="color:#94a3b8;"></i>';
+        var im = d.imageBase64 ? '<img src="'+d.imageBase64+'" style="width:30px;height:30px;object-fit:cover;border-radius:4px;">' : '<i class="fas fa-coffee" style="color:#94a3b8;"></i>';
         var disp = d.disponible !== false ? '<span class="status-success">Oui</span>' : '<span class="status-danger">Non</span>';
         var profitVal = (d.profit !== undefined && !isNaN(d.profit)) ? d.profit : 0;
         var pc = profitVal >= 0 ? '#16a34a' : '#dc2626';
-        tb.innerHTML += '<tr><td>'+im+'</td><td><strong>'+(d.nom||'')+'</strong></td><td>'+(d.categorie||'-')+'</td><td>'+((d.prixAchat||0).toFixed(2))+'</td><td>'+((d.prixVente||0).toFixed(2))+'</td><td>'+((d.prixPromo||0).toFixed(2))+'</td><td style="color:'+pc+';">'+profitVal.toFixed(2)+'</td><td>'+(d.stock||0)+'</td><td>'+(d.vendues||0)+'</td><td>'+((d.ca||0).toFixed(2))+'</td><td>'+disp+'</td><td>'+(d.tempsPrep||'-')+'</td><td>'+(d.description||'-')+'</td><td><button class="btn-edit" onclick="editDocument(\'products\',\''+d.id+'\')"><i class="fas fa-edit"></i></button> <button class="btn-delete" onclick="deleteDocument(\'products\',\''+d.id+'\')"><i class="fas fa-trash"></i></button></td></tr>';
+        tb.innerHTML += '<tr><td>'+im+'</td><td><strong>'+escapeHtml(d.nom||'')+'</strong></td><td>'+escapeHtml(d.categorie||'-')+'</td><td>'+((d.prixAchat||0).toFixed(2))+'</td><td>'+((d.prixVente||0).toFixed(2))+'</td><td>'+((d.prixPromo||0).toFixed(2))+'</td><td style="color:'+pc+';">'+profitVal.toFixed(2)+'</td><td>'+(d.stock||0)+'</td><td>'+(d.vendues||0)+'</td><td>'+((d.ca||0).toFixed(2))+'</td><td>'+disp+'</td><td>'+(d.tempsPrep||'-')+'</td><td>'+(d.description||'-')+'</td><td><button class="btn-edit" onclick="editDocument(\'products\',\''+d.id+'\')"><i class="fas fa-edit"></i></button> <button class="btn-delete" onclick="deleteDocument(\'products\',\''+d.id+'\')"><i class="fas fa-trash"></i></button></td></tr>';
     }
     document.getElementById('productsPagination').innerHTML = getPaginationHTML('products', data.length);
 }
@@ -616,12 +615,12 @@ async function openProductForm(data) {
     var co = '';
     try {
         var cs = await db.collection('categories').get();
-        cs.forEach(function(d) { var sel = data.categorie === d.data().nom ? 'selected' : ''; co += '<option value="' + d.data().nom + '" ' + sel + '>' + d.data().nom + '</option>'; });
+        cs.forEach(function(d) { var sel = data.categorie === d.data().nom ? 'selected' : ''; co += '<option value="' + escapeHtml(d.data().nom) + '" ' + sel + '>' + escapeHtml(d.data().nom) + '</option>'; });
     } catch (e) {}
     var ip = data.imageBase64 ? '<img src="' + data.imageBase64 + '" style="max-width:100px;">' : '';
     var dy = data.disponible !== false ? 'selected' : '', dn = data.disponible === false ? 'selected' : '';
-    var h = '<div class="form-row"><div class="form-group"><label>Image</label><input type="file" id="prodImage" onchange="previewImage(this,\'prodPreview\')"><div id="prodPreview">' + ip + '</div></div></div><div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="prodNom" value="' + (data.nom || '') + '" required></div><div class="form-group"><label>Catégorie</label><select id="prodCat"><option value="">-</option>' + co + '</select></div></div><div class="form-row"><div class="form-group"><label>Prix Achat</label><input type="number" id="prodPA" value="' + (data.prixAchat || 0) + '" step="0.01"></div><div class="form-group"><label>Prix Vente</label><input type="number" id="prodPV" value="' + (data.prixVente || 0) + '" step="0.01"></div></div><div class="form-row"><div class="form-group"><label>Prix Promo</label><input type="number" id="prodPromo" value="' + (data.prixPromo || 0) + '" step="0.01"></div><div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="' + (data.stock || 0) + '"></div></div><div class="form-row"><div class="form-group"><label>Temps Prep</label><input type="text" id="prodTemps" value="' + (data.tempsPrep || '') + '" placeholder="15 min"></div><div class="form-group"><label>Disponible</label><select id="prodDispo"><option value="1" ' + dy + '>Oui</option><option value="0" ' + dn + '>Non</option></select></div></div><div class="form-row"><div class="form-group"><label>Description</label><textarea id="prodDesc">' + (data.description || '') + '</textarea></div></div>';
-    // Section ingrédients
+    var h = '<div class="form-row"><div class="form-group"><label>Image</label><input type="file" id="prodImage" onchange="previewImage(this,\'prodPreview\')"><div id="prodPreview">' + ip + '</div></div></div><div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="prodNom" value="' + escapeHtml(data.nom || '') + '" required></div><div class="form-group"><label>Catégorie</label><select id="prodCat"><option value="">-</option>' + co + '</select></div></div><div class="form-row"><div class="form-group"><label>Prix Achat</label><input type="number" id="prodPA" value="' + (data.prixAchat || 0) + '" step="0.01"></div><div class="form-group"><label>Prix Vente</label><input type="number" id="prodPV" value="' + (data.prixVente || 0) + '" step="0.01"></div></div><div class="form-row"><div class="form-group"><label>Prix Promo</label><input type="number" id="prodPromo" value="' + (data.prixPromo || 0) + '" step="0.01"></div><div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="' + (data.stock || 0) + '"></div></div><div class="form-row"><div class="form-group"><label>Temps Prep</label><input type="text" id="prodTemps" value="' + escapeHtml(data.tempsPrep || '') + '" placeholder="15 min"></div><div class="form-group"><label>Disponible</label><select id="prodDispo"><option value="1" ' + dy + '>Oui</option><option value="0" ' + dn + '>Non</option></select></div></div><div class="form-row"><div class="form-group"><label>Description</label><textarea id="prodDesc">' + escapeHtml(data.description || '') + '</textarea></div></div>';
+    
     h += '<div class="form-row" style="flex-direction:column;">';
     h += '<label style="font-weight:600; margin-bottom:10px;">🧾 Recette (ingrédients du stock)</label>';
     h += '<div id="productIngredientsList" style="display:flex; flex-direction:column; gap:8px;">';
@@ -644,7 +643,6 @@ function saveProduct() {
     if (!n) { alert('Nom obligatoire'); return; }
     var f = document.getElementById('prodImage').files[0];
 
-    // Récupération des ingrédients
     var ingredients = [];
     var rows = document.querySelectorAll('#productIngredientsList .ingredient-row');
     rows.forEach(function(row) {
@@ -699,7 +697,7 @@ function saveProduct() {
     };
     if (f) fileToBase64(f, sf); else sf(null);
 }
-
+// ==================== ADMIN.JS - ALMA COFFEE SHOP (PARTIE 4) ====================
 // ==================== CLIENTS ====================
 function loadClientsPage(c) {
     c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-users"></i> Clients</h3><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;"><div class="input-group" style="width:300px;min-width:200px;margin-bottom:0;background:#fff;border:2px solid var(--border);border-radius:12px;"><i class="fas fa-search" style="color:#94a3b8;"></i><input type="text" id="clientSearchInput" placeholder="Rechercher..." onkeyup="clientSearch(this.value)" style="border:none;padding:12px;"></div><button class="btn-add" onclick="openClientForm()"><i class="fas fa-plus"></i> Ajouter</button></div></div><div class="table-container"><table class="data-table" id="clientsTable" style="font-size:0.6rem;"><thead><tr>'+makeSortableHeader('clients','id','ID','loadClients')+makeSortableHeader('clients','nom','Nom','loadClients')+makeSortableHeader('clients','prenom','Prénom','loadClients')+makeSortableHeader('clients','username','Username','loadClients')+makeSortableHeader('clients','genre','Genre','loadClients')+makeSortableHeader('clients','adresse','Adresse','loadClients')+makeSortableHeader('clients','email','Email','loadClients')+makeSortableHeader('clients','telephone','Tél','loadClients')+makeSortableHeader('clients','whatsapp','WhatsApp','loadClients')+makeSortableHeader('clients','facebook','Facebook','loadClients')+makeSortableHeader('clients','instagram','Instagram','loadClients')+makeSortableHeader('clients','ca','CA','loadClients')+makeSortableHeader('clients','profit','Profit','loadClients')+makeSortableHeader('clients','pointsFidelite','Points Fid','loadClients')+makeSortableHeader('clients','allergies','Allergies','loadClients')+makeSortableHeader('clients','aime','Aime','loadClients')+makeSortableHeader('clients','deteste','Déteste','loadClients')+makeSortableHeader('clients','createdAt','Date créé','loadClients')+'<th>Actions</th></tr></thead><tbody></tbody></table></div><div id="clientsPagination"></div></div>';
@@ -743,19 +741,19 @@ function renderClientsTable() {
         var dateCreated = d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleDateString('fr-FR')+' '+new Date(d.createdAt.seconds*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '-';
         var row = '<tr>';
         row += '<td><small>'+(d.id||'').substring(0,6)+'</small></td>';
-        row += '<td><strong>'+(d.nom||'')+'</strong></td>';
-        row += '<td>'+(d.prenom||'')+'</td>';
-        row += '<td>@'+(d.username||'')+'</td>';
-        row += '<td>'+(d.genre||'-')+'</td>';
-        row += '<td><small>'+(d.adresse||'-')+'</small></td>';
-        row += '<td><small>'+(d.email||'-')+'</small></td>';
-        row += '<td>'+(d.telephone||'-')+'</td>';
-        row += '<td>'+(d.whatsapp||'-')+'</td>';
-        row += '<td>'+(d.facebook||'-')+'</td>';
-        row += '<td>'+(d.instagram||'-')+'</td>';
+        row += '<td><strong>'+escapeHtml(d.nom||'')+'</strong></td>';
+        row += '<td>'+escapeHtml(d.prenom||'')+'</td>';
+        row += '<td>@'+escapeHtml(d.username||'')+'</td>';
+        row += '<td>'+escapeHtml(d.genre||'-')+'</td>';
+        row += '<td><small>'+escapeHtml(d.adresse||'-')+'</small></td>';
+        row += '<td><small>'+escapeHtml(d.email||'-')+'</small></td>';
+        row += '<td>'+escapeHtml(d.telephone||'-')+'</td>';
+        row += '<td>'+escapeHtml(d.whatsapp||'-')+'</td>';
+        row += '<td>'+escapeHtml(d.facebook||'-')+'</td>';
+        row += '<td>'+escapeHtml(d.instagram||'-')+'</td>';
         row += '<td style="color:#16a34a;font-weight:600;">'+(d.ca||0).toFixed(2)+'</td>';
         row += '<td style="color:#16a34a;">'+(d.profit||0).toFixed(2)+'</td>';
-        row += '<td style="color:#f39c12;font-weight:600;">'+(d.pointsFidelite||0)+'</td>';
+        row += '<td style="color:#A67C52;font-weight:600;">'+(d.pointsFidelite||0)+'</td>';
         row += '<td><small>'+(d.allergies?d.allergies.join(', '):'-')+'</small></td>';
         row += '<td><small>'+(d.aime?d.aime.join(', '):'-')+'</small></td>';
         row += '<td><small>'+(d.deteste?d.deteste.join(', '):'-')+'</small></td>';
@@ -770,15 +768,15 @@ function renderClientsTable() {
 function openClientForm(data) {
     data = data || {};
     var h = '';
-    h += '<div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="cliNom" value="' + (data.nom || '') + '" required></div><div class="form-group"><label>Prénom *</label><input type="text" id="cliPrenom" value="' + (data.prenom || '') + '" required></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Username</label><input type="text" id="cliUsername" value="' + (data.username || '') + '"></div><div class="form-group"><label>Genre</label><select id="cliGenre"><option value="">-</option><option value="M" ' + (data.genre === 'M' ? 'selected' : '') + '>M</option><option value="F" ' + (data.genre === 'F' ? 'selected' : '') + '>F</option></select></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Adresse</label><input type="text" id="cliAdresse" value="' + (data.adresse || '') + '"></div><div class="form-group"><label>Email</label><input type="email" id="cliEmail" value="' + (data.email || '') + '"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Téléphone</label><input type="text" id="cliTel" value="' + (data.telephone || '') + '"></div><div class="form-group"><label>WhatsApp</label><input type="text" id="cliWhatsapp" value="' + (data.whatsapp || '') + '"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Facebook</label><input type="text" id="cliFacebook" value="' + (data.facebook || '') + '"></div><div class="form-group"><label>Instagram</label><input type="text" id="cliInstagram" value="' + (data.instagram || '') + '"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="cliNom" value="' + escapeHtml(data.nom || '') + '" required></div><div class="form-group"><label>Prénom *</label><input type="text" id="cliPrenom" value="' + escapeHtml(data.prenom || '') + '" required></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Username</label><input type="text" id="cliUsername" value="' + escapeHtml(data.username || '') + '"></div><div class="form-group"><label>Genre</label><select id="cliGenre"><option value="">-</option><option value="M" ' + (data.genre === 'M' ? 'selected' : '') + '>M</option><option value="F" ' + (data.genre === 'F' ? 'selected' : '') + '>F</option></select></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Adresse</label><input type="text" id="cliAdresse" value="' + escapeHtml(data.adresse || '') + '"></div><div class="form-group"><label>Email</label><input type="email" id="cliEmail" value="' + escapeHtml(data.email || '') + '"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Téléphone</label><input type="text" id="cliTel" value="' + escapeHtml(data.telephone || '') + '"></div><div class="form-group"><label>WhatsApp</label><input type="text" id="cliWhatsapp" value="' + escapeHtml(data.whatsapp || '') + '"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Facebook</label><input type="text" id="cliFacebook" value="' + escapeHtml(data.facebook || '') + '"></div><div class="form-group"><label>Instagram</label><input type="text" id="cliInstagram" value="' + escapeHtml(data.instagram || '') + '"></div></div>';
     h += '<div class="form-row"><div class="form-group"><label>CA</label><input type="number" id="cliCA" value="' + (data.ca || 0) + '" step="0.01"></div><div class="form-group"><label>Profit</label><input type="number" id="cliProfit" value="' + (data.profit || 0) + '" step="0.01"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Points Fidélité</label><input type="number" id="cliPoints" value="' + (data.pointsFidelite || 0) + '"></div><div class="form-group"><label>Description</label><textarea id="cliDesc">' + (data.description || '') + '</textarea></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Allergies (virgules)</label><input type="text" id="cliAllergies" value="' + (data.allergies ? data.allergies.join(', ') : '') + '" placeholder="gluten, lactose"></div><div class="form-group"><label>Aime (virgules)</label><input type="text" id="cliAime" value="' + (data.aime ? data.aime.join(', ') : '') + '" placeholder="poulet, poisson"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Déteste (virgules)</label><input type="text" id="cliDeteste" value="' + (data.deteste ? data.deteste.join(', ') : '') + '" placeholder="oignon, tomate"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Points Fidélité</label><input type="number" id="cliPoints" value="' + (data.pointsFidelite || 0) + '"></div><div class="form-group"><label>Description</label><textarea id="cliDesc">' + escapeHtml(data.description || '') + '</textarea></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Allergies (virgules)</label><input type="text" id="cliAllergies" value="' + (data.allergies ? data.allergies.join(', ') : '') + '" placeholder="gluten, lactose"></div><div class="form-group"><label>Aime (virgules)</label><input type="text" id="cliAime" value="' + (data.aime ? data.aime.join(', ') : '') + '" placeholder="café, thé"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Déteste (virgules)</label><input type="text" id="cliDeteste" value="' + (data.deteste ? data.deteste.join(', ') : '') + '" placeholder="sucre, lactose"></div></div>';
     h += '<button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="saveClient()">Enregistrer</button>';
     currentCollection = 'clients';
     openModal(editingId ? 'Modifier Client' : 'Nouveau Client', h);
@@ -816,95 +814,7 @@ function deleteClient(id) {
     }
 }
 
-// ==================== FOURNISSEURS ====================
-function loadFournisseursPage(c) {
-    c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-truck"></i> Fournisseurs</h3><button class="btn-add" onclick="openFournisseurForm()"><i class="fas fa-plus"></i> Ajouter</button></div><div class="table-container"><table class="data-table" id="fournisseursTable" style="font-size:0.6rem;"><thead><tr>'+makeSortableHeader('fournisseurs','id','ID','loadFournisseurs')+makeSortableHeader('fournisseurs','nom','Nom','loadFournisseurs')+makeSortableHeader('fournisseurs','prenom','Prénom','loadFournisseurs')+makeSortableHeader('fournisseurs','societe','Société','loadFournisseurs')+makeSortableHeader('fournisseurs','telephone','Tél','loadFournisseurs')+makeSortableHeader('fournisseurs','whatsapp','WhatsApp','loadFournisseurs')+makeSortableHeader('fournisseurs','email','Email','loadFournisseurs')+makeSortableHeader('fournisseurs','adresse','Adresse','loadFournisseurs')+makeSortableHeader('fournisseurs','description','Description','loadFournisseurs')+makeSortableHeader('fournisseurs','ca','CA','loadFournisseurs')+'<th>Catégories</th>'+makeSortableHeader('fournisseurs','createdAt','Date créé','loadFournisseurs')+'<th>Actions</th></tr></thead><tbody></tbody></table></div><div id="fournisseursPagination"></div></div>';
-    loadFournisseurs();
-}
-
-async function loadFournisseurs() {
-    try {
-        const cached = await CacheDB.getAll('fournisseurs');
-        if (cached.length) allFournisseursData = cached;
-        const snapshot = await db.collection('fournisseurs').get();
-        allFournisseursData = [];
-        snapshot.forEach(d => { let dd = d.data(); dd.id = d.id; allFournisseursData.push(dd); });
-        for (let doc of allFournisseursData) await CacheDB.set('fournisseurs', doc.id, doc);
-    } catch(e){ console.error(e); }
-    currentPages.fournisseurs = 1;
-    renderFournisseursTable();
-}
-
-function renderFournisseursTable() {
-    var tb = document.querySelector('#fournisseursTable tbody');
-    if (!tb) return;
-    var data = applySort('fournisseurs', allFournisseursData.slice(), 'nom');
-    var pageData = getPageData('fournisseurs', data);
-    tb.innerHTML = '';
-    if (pageData.length === 0) {
-        tb.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:30px;">Aucun fournisseur</td></tr>';
-        document.getElementById('fournisseursPagination').innerHTML = '';
-        return;
-    }
-    for (var i = 0; i < pageData.length; i++) {
-        var d = pageData[i];
-        var dateCreated = d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleDateString('fr-FR')+' '+new Date(d.createdAt.seconds*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '-';
-        var categories = d.categories ? d.categories.join(', ') : '-';
-        tb.innerHTML += '<tr><td><small>'+(d.id||'').substring(0,6)+'</small></td><td><strong>'+(d.nom||'')+'</strong></td><td>'+(d.prenom||'')+'</td><td>'+(d.societe||'-')+'</td><td>'+(d.telephone||'-')+'</td><td>'+(d.whatsapp||'-')+'</td><td><small>'+(d.email||'-')+'</small></td><td><small>'+(d.adresse||'-')+'</small></td><td><small>'+(d.description||'-')+'</small></td><td>'+(d.ca||0).toFixed(2)+' MAD</td><td><small>'+categories+'</small></td><td><small>'+dateCreated+'</small></td><td><button class="btn-edit" onclick="editFournisseur(\''+d.id+'\')"><i class="fas fa-edit"></i></button> <button class="btn-delete" onclick="deleteFournisseur(\''+d.id+'\')"><i class="fas fa-trash"></i></button></td></tr>';
-    }
-    document.getElementById('fournisseursPagination').innerHTML = getPaginationHTML('fournisseurs', data.length);
-}
-
-function openFournisseurForm(data) {
-    data = data || {};
-    var selectedCategories = data.categories || [];
-    var h = '';
-    h += '<div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="fourNom" value="' + (data.nom || '') + '" required></div><div class="form-group"><label>Prénom</label><input type="text" id="fourPrenom" value="' + (data.prenom || '') + '"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Société</label><input type="text" id="fourSociete" value="' + (data.societe || '') + '"></div><div class="form-group"><label>Téléphone</label><input type="text" id="fourTel" value="' + (data.telephone || '') + '"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>WhatsApp</label><input type="text" id="fourWhatsapp" value="' + (data.whatsapp || '') + '"></div><div class="form-group"><label>Email</label><input type="email" id="fourEmail" value="' + (data.email || '') + '"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Adresse</label><input type="text" id="fourAdresse" value="' + (data.adresse || '') + '"></div><div class="form-group"><label>CA</label><input type="number" id="fourCA" value="' + (data.ca || 0) + '" step="0.01"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Description</label><textarea id="fourDesc">' + (data.description || '') + '</textarea></div></div>';
-    h += '<div class="form-row"><div class="form-group" style="min-width:100%;"><label>Catégories (plusieurs choix possibles)</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;">';
-    fournisseurCategoriesList.forEach(function(cat) {
-        var checked = selectedCategories.indexOf(cat) !== -1 ? 'checked' : '';
-        h += '<label style="display:flex;align-items:center;gap:4px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:0.8rem;"><input type="checkbox" class="four-cat-check" value="' + cat + '" ' + checked + '> ' + cat + '</label>';
-    });
-    h += '</div></div></div>';
-    h += '<button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="saveFournisseur()">Enregistrer</button>';
-    currentCollection = 'fournisseurs';
-    openModal(editingId ? 'Modifier Fournisseur' : 'Nouveau Fournisseur', h);
-}
-
-function saveFournisseur() {
-    var nom = document.getElementById('fourNom').value;
-    if (!nom) { alert('Nom obligatoire'); return; }
-    var categories = [];
-    document.querySelectorAll('.four-cat-check:checked').forEach(function(cb) { categories.push(cb.value); });
-    var d = {
-        nom: nom, prenom: document.getElementById('fourPrenom').value, societe: document.getElementById('fourSociete').value,
-        telephone: document.getElementById('fourTel').value, whatsapp: document.getElementById('fourWhatsapp').value,
-        email: document.getElementById('fourEmail').value, adresse: document.getElementById('fourAdresse').value,
-        ca: parseFloat(document.getElementById('fourCA').value) || 0, description: document.getElementById('fourDesc').value,
-        categories: categories
-    };
-    if (!editingId) d.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-    saveDocument('fournisseurs', d, function() { closeModal(); loadFournisseurs(); });
-}
-
-function editFournisseur(id) {
-    db.collection('fournisseurs').doc(id).get().then(function(doc) {
-        if (doc.exists) { editingId = id; currentCollection = 'fournisseurs'; openFournisseurForm(doc.data()); }
-    });
-}
-
-function deleteFournisseur(id) {
-    if (confirm('Supprimer ce fournisseur ?')) {
-        CacheDB.write('fournisseurs', id, null, 'delete').then(function() { alert('Supprimé'); loadFournisseurs(); CacheDB.sync(); });
-    }
-}
-
 // ==================== COMMANDES EN LIGNE ====================
-// ==================== COMMANDES EN LIGNE (sans index, filtre côté client) ====================
 function loadCommandesPage(c) {
     c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-shopping-basket"></i> Commandes en ligne</h3><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">'+
         '<input type="text" id="commandesSearchInput" placeholder="🔍 Rechercher (client, email, tél, produit)..." style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; width:250px;" onkeyup="commandesSearch = this.value; currentPages.commandes=1; applyCommandesFilters();">'+
@@ -916,7 +826,6 @@ function loadCommandesPage(c) {
 
 async function loadCommandes() {
     try {
-        // Charger toutes les commandes (toutes sources confondues) puis filtrer côté client
         const snapshot = await db.collection('commandes')
             .orderBy('createdAt', 'desc')
             .limit(500)
@@ -925,13 +834,22 @@ async function loadCommandes() {
         snapshot.forEach(dc => {
             var d = dc.data();
             d.id = dc.id;
-            // Garder uniquement les commandes des clients
             if (d.source === 'client') {
                 allCommandesData.push(d);
             }
         });
     } catch(e) {
         console.error('Erreur chargement commandes en ligne :', e);
+        const fallback = await db.collection('commandes').get();
+        allCommandesData = [];
+        fallback.forEach(dc => {
+            var d = dc.data();
+            if (d.source === 'client') {
+                d.id = dc.id;
+                allCommandesData.push(d);
+            }
+        });
+        allCommandesData.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     }
     currentPages.commandes = 1;
     applyCommandesFilters();
@@ -940,6 +858,11 @@ async function loadCommandes() {
 function applyCommandesFilters() {
     var filtered = filterByPeriod(allCommandesData, commandesPeriod);
     filtered = filterBySearch(filtered, commandesSearch, ['clientName','clientEmail','clientTelephone','items.nom']);
+    if (!sortOrders.commandes || !sortOrders.commandes.createdAt) {
+        filtered.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    } else {
+        filtered = applySort('commandes', filtered, 'createdAt');
+    }
     window.filteredCommandes = filtered;
     renderCommandesTable();
 }
@@ -947,7 +870,12 @@ function applyCommandesFilters() {
 function renderCommandesTable() {
     var cont = document.getElementById('commandesTableContainer');
     if (!cont) return;
-    var data = applySort('commandes', (window.filteredCommandes || allCommandesData).slice(), 'createdAt');
+    var data = (window.filteredCommandes || allCommandesData).slice();
+    if (!sortOrders.commandes || !sortOrders.commandes.createdAt) {
+        data.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    } else {
+        data = applySort('commandes', data, 'createdAt');
+    }
     var pageData = getPageData('commandes', data);
     if (pageData.length === 0) {
         cont.innerHTML = '<p style="text-align:center;padding:40px;">Aucune commande trouvée</p>';
@@ -960,17 +888,17 @@ function renderCommandesTable() {
         makeSortableHeader('commandes','clientEmail','Email','renderCommandesTable')+
         makeSortableHeader('commandes','clientTelephone','Tél','renderCommandesTable')+
         '<th>Articles</th><th>Options</th>'+makeSortableHeader('commandes','total','Total','renderCommandesTable')+
-        makeSortableHeader('commandes','statut','Statut','renderCommandesTable')+'<th>Actions</th></tr></thead><tbody>';
+        makeSortableHeader('commandes','statut','Statut','renderCommandesTable')+'<th>Actions</th><tr></thead><tbody>';
 
     pageData.forEach(function(d) {
         var dt = d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleString('fr-FR') : '';
-        var arts = d.items ? d.items.map(function(it){ return '<strong>'+it.quantite+'x</strong> '+it.nom; }).join('<br>') : '';
+        var arts = d.items ? d.items.map(function(it){ return '<strong>'+it.quantite+'x</strong> '+escapeHtml(it.nom); }).join('<br>') : '';
         var opts = d.items ? d.items.map(function(it){
             var o = [];
-            if(it.sauces && it.sauces.length) o.push('<span style="color:#f39c12;">🥫'+it.sauces.join(',')+'</span>');
-            if(it.interdits && it.interdits.length) o.push('<span style="color:#ef4444;">🚫'+it.interdits.join(',')+'</span>');
-            if(it.epice && it.epice!=='Normal') o.push('<span style="color:#d97706;">🌶️'+it.epice+'</span>');
-            if(it.sel && it.sel!=='Normal') o.push('<span style="color:#4f46e5;">🧂'+it.sel+'</span>');
+            if(it.sauces && it.sauces.length) o.push('<span style="color:#A67C52;">🥫'+escapeHtml(it.sauces.join(','))+'</span>');
+            if(it.interdits && it.interdits.length) o.push('<span style="color:#ef4444;">🚫'+escapeHtml(it.interdits.join(','))+'</span>');
+            if(it.epice && it.epice!=='Normal') o.push('<span style="color:#d97706;">🌶️'+escapeHtml(it.epice)+'</span>');
+            if(it.sel && it.sel!=='Normal') o.push('<span style="color:#4f46e5;">🧂'+escapeHtml(it.sel)+'</span>');
             return o.length ? o.join(' | ') : '-';
         }).join('<br>') : '-';
         var sc = d.statut==='payé'?'#4f46e5':d.statut==='valide'?'#16a34a':'#d97706';
@@ -985,9 +913,9 @@ function renderCommandesTable() {
         } else {
             act = '<small style="color:#4f46e5;">Payée</small>';
         }
-        h += '<tr><td>'+dt+'</td><td><strong>'+(d.clientName||'')+'</strong></td><td>'+(d.clientEmail||'-')+'</td><td>'+(d.clientTelephone||'-')+'</td><td>'+arts+'</td><td>'+opts+'</td><td><strong>'+d.total.toFixed(2)+' MAD</strong></td><td><span style="color:'+sc+';">'+sl+'</span></td><td>'+act+'</td></tr>';
+        h += '<tr><td>'+dt+'</td><td><strong>'+escapeHtml(d.clientName||'')+'</strong></td><td>'+escapeHtml(d.clientEmail||'-')+'</td><td>'+escapeHtml(d.clientTelephone||'-')+'</td><td>'+arts+'</td><td>'+opts+'</td><td><strong>'+d.total.toFixed(2)+' MAD</strong></td><td><span style="color:'+sc+';">'+sl+'</span></td><td>'+act+'</td></tr>';
     });
-    h += '</tbody></table></div>';
+    h += '</tbody></td></div>';
     cont.innerHTML = h;
     document.getElementById('commandesPagination').innerHTML = getPaginationHTML('commandes', data.length);
 }
@@ -1011,7 +939,8 @@ function cancelCommande(cid) {
         CacheDB.write('commandes', cid, { statut: 'annule' }, 'update').then(function() { alert('❌ Annulée'); loadCommandes(); CacheDB.sync(); });
     }
 }
-// ==================== VENTES ====================
+
+// ==================== VENTES (simplifié - garder l'existant) ====================
 function loadVentesPage(c) {
     c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-shopping-cart"></i> Ventes</h3><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">'+
         '<input type="text" id="ventesSearchInput" placeholder="🔍 Rechercher (client, produit)..." style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; width:250px;" onkeyup="ventesSearch = this.value; currentPages.ventes=1; applyVentesFilters();">'+
@@ -1083,20 +1012,20 @@ function renderVentesTable() {
     pageData.forEach(function(d){
         var dt = d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleString('fr-FR') : '';
         var cl = d.clientName || d.table || '-';
-        var arts = d.items ? d.items.map(function(it){ return '<strong>'+it.quantite+'x</strong> '+it.nom; }).join('<br>') : '-';
+        var arts = d.items ? d.items.map(function(it){ return '<strong>'+it.quantite+'x</strong> '+escapeHtml(it.nom); }).join('<br>') : '-';
         var opts = d.items ? d.items.map(function(it){
             var o = [];
-            if(it.sauces && it.sauces.length) o.push('<span style="color:#f39c12;">🥫'+it.sauces.join(',')+'</span>');
-            if(it.interdits && it.interdits.length) o.push('<span style="color:#ef4444;">🚫'+it.interdits.join(',')+'</span>');
-            if(it.epice && it.epice!=='Normal') o.push('<span style="color:#d97706;">🌶️'+it.epice+'</span>');
-            if(it.sel && it.sel!=='Normal') o.push('<span style="color:#4f46e5;">🧂'+it.sel+'</span>');
+            if(it.sauces && it.sauces.length) o.push('<span style="color:#A67C52;">🥫'+escapeHtml(it.sauces.join(','))+'</span>');
+            if(it.interdits && it.interdits.length) o.push('<span style="color:#ef4444;">🚫'+escapeHtml(it.interdits.join(','))+'</span>');
+            if(it.epice && it.epice!=='Normal') o.push('<span style="color:#d97706;">🌶️'+escapeHtml(it.epice)+'</span>');
+            if(it.sel && it.sel!=='Normal') o.push('<span style="color:#4f46e5;">🧂'+escapeHtml(it.sel)+'</span>');
             return o.length ? o.join(' | ') : '-';
         }).join('<br>') : '-';
         tv += d.total || 0;
         var amountGiven = d.amountGiven || 0;
         var change = d.change || 0;
         var statutLabel = d.statutPaiement || (d.paid?'payé':'impayé');
-        var statutColor = statutLabel==='payé'?'#16a34a':statutLabel==='crédit'?'#f39c12':statutLabel==='partiel'?'#d97706':'#ef4444';
+        var statutColor = statutLabel==='payé'?'#16a34a':statutLabel==='crédit'?'#A67C52':statutLabel==='partiel'?'#d97706':'#ef4444';
         var actions = '<button class="btn-edit" onclick="printFacture(\''+d.id+'\')"><i class="fas fa-print"></i></button> ';
         if(!d.paid) actions += '<button class="btn-add" style="padding:4px 6px;font-size:0.65rem;" onclick="payerVente(\''+d.id+'\')"><i class="fas fa-check"></i> Payer</button> ';
         if(isAdmin){ actions += '<button class="btn-edit" onclick="editVente(\''+d.id+'\')"><i class="fas fa-edit"></i></button> <button class="btn-delete" onclick="deleteVente(\''+d.id+'\')"><i class="fas fa-trash"></i></button>'; }
@@ -1156,192 +1085,20 @@ function imprimerFacture(d, id) {
             if (it.interdits && it.interdits.length > 0) o += ' 🚫' + it.interdits.join(',');
             if (it.permis && it.permis.length > 0) o += ' ✅' + it.permis.join(',');
             if (it.epice && it.epice !== 'Normal') o += ' 🌶️' + it.epice;
-            ih += '<tr><td>' + it.nom + o + '</td><td>' + it.quantite + '</td><td>' + (it.prixVente || 0).toFixed(2) + '</td><td>' + ((it.prixVente || 0) * it.quantite).toFixed(2) + '</td></tr>';
+            ih += '<tr><td>' + escapeHtml(it.nom) + o + '</td><td>' + it.quantite + '</td><td>' + (it.prixVente || 0).toFixed(2) + '</td><td>' + ((it.prixVente || 0) * it.quantite).toFixed(2) + '</td></tr>';
         });
     }
     var w = window.open('', '_blank', 'width=400,height=600');
-    w.document.write('<html><head><title>Facture</title><style>body{font-family:Arial;padding:20px;}h2{text-align:center;}table{width:100%;border-collapse:collapse;}th,td{padding:5px;border-bottom:1px solid #ddd;}.total{font-size:16px;font-weight:bold;text-align:right;}</style></head><body><h2>🐔 Chicken Way</h2><p>Facture: ' + (d.factureNum || id.substring(0, 8)) + '</p><p>Date: ' + (d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString('fr-FR') : '') + '</p><p>Client: ' + (d.clientName || d.table || '') + '</p><p>Vendeur: ' + (d.vendeur || '-') + '</p><table><tr><th>Article</th><th>Qté</th><th>Prix</th><th>Total</th></tr>' + ih + '</table>' + (d.discountMAD > 0 ? '<p>Remise: ' + d.discountMAD.toFixed(2) + ' MAD</p>' : '') + '<p class="total">Total: ' + d.total.toFixed(2) + ' MAD</p></body></html>');
+    w.document.write('<html><head><title>Facture Alma Coffee Shop</title><style>body{font-family:Arial;padding:20px;}h2{text-align:center;}table{width:100%;border-collapse:collapse;}th,td{padding:5px;border-bottom:1px solid #ddd;}.total{font-size:16px;font-weight:bold;text-align:right;}</style></head><body><h2>☕ Alma Coffee Shop</h2><p>Facture: ' + (d.factureNum || id.substring(0, 8)) + '</p><p>Date: ' + (d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString('fr-FR') : '') + '</p><p>Client: ' + (d.clientName || d.table || '') + '</p><p>Vendeur: ' + (d.vendeur || '-') + '</p><table><tr><th>Article</th><th>Qté</th><th>Prix</th><th>Total</th></tr>' + ih + '</table>' + (d.discountMAD > 0 ? '<p>Remise: ' + d.discountMAD.toFixed(2) + ' MAD</p>' : '') + '<p class="total">Total: ' + d.total.toFixed(2) + ' MAD</p></body></html>');
     w.document.close();
     setTimeout(function() { w.print(); }, 500);
 }
 
-// ==================== CRÉDITS ====================
-function loadCreditsPage(c) {
-    c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-credit-card"></i> Crédits</h3><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">'+
-        '<input type="text" id="creditsSearchInput" placeholder="🔍 Rechercher (client)..." style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; width:250px;" onkeyup="creditsSearch = this.value; currentPages.credits=1; applyCreditsFilters();">'+
-        '<select id="creditsPeriodSelect" style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px;" onchange="creditsPeriod = this.value; currentPages.credits=1; applyCreditsFilters();">'+getPeriodOptions('all')+'</select>'+
-        '<button class="btn-add" onclick="loadCredits()"><i class="fas fa-sync"></i> Actualiser</button>'+
-    '</div></div><div id="creditsTableContainer"></div><div id="creditsPagination" style="margin-top:10px;"></div></div>';
-    loadCredits();
-}
-
-async function loadCredits() {
-    var isAdmin = window.currentUserData && window.currentUserData.userData.role === 'admin';
-    var vendeurCaissier = '';
-    if (!isAdmin && window.currentUserData) vendeurCaissier = window.currentUserData.userData.prenom+' '+window.currentUserData.userData.nom;
-    try {
-        const snapshot = await db.collection('credits').orderBy('createdAt','desc').limit(2000).get();
-        allCreditsData = [];
-        snapshot.forEach(dc => { var d = dc.data(); d.id = dc.id; allCreditsData.push(d); });
-        if (!isAdmin) allCreditsData = allCreditsData.filter(function(d){ return d.vendeur === vendeurCaissier; });
-    } catch(e){ console.error(e); }
-    currentPages.credits = 1;
-    applyCreditsFilters();
-}
-
-function applyCreditsFilters() {
-    var filtered = filterByPeriod(allCreditsData, creditsPeriod);
-    filtered = filterBySearch(filtered, creditsSearch, ['clientName']);
-    window.filteredCredits = filtered;
-    renderCreditsTable();
-}
-
-function renderCreditsTable() {
-    var cont = document.getElementById('creditsTableContainer');
-    if (!cont) return;
-    var data = applySort('credits', (window.filteredCredits || allCreditsData).slice(), 'createdAt');
-    var pageData = getPageData('credits', data);
-    if (pageData.length === 0) {
-        cont.innerHTML = '<p style="text-align:center;padding:40px;">Aucun crédit trouvé</p>';
-        document.getElementById('creditsPagination').innerHTML = '';
-        return;
-    }
-    var tc = 0;
-    var h = '<div class="table-container"><table class="data-table" style="font-size:0.55rem;"><thead><tr>'+
-        makeSortableHeader('credits','factureNum','Facture','renderCreditsTable')+
-        makeSortableHeader('credits','createdAt','Date','renderCreditsTable')+
-        makeSortableHeader('credits','clientName','Client','renderCreditsTable')+
-        makeSortableHeader('credits','total','Total','renderCreditsTable')+
-        makeSortableHeader('credits','amountGiven','Payé','renderCreditsTable')+
-        makeSortableHeader('credits','remainingAmount','Restant','renderCreditsTable')+
-        makeSortableHeader('credits','paymentMethod','Mode','renderCreditsTable')+
-        makeSortableHeader('credits','vendeur','Vendeur','renderCreditsTable')+
-        '<th>Actions</th></tr></thead><tbody>';
-
-    pageData.forEach(function(d){
-        var reste = d.remainingAmount || d.total || 0;
-        if (!d.paid) tc += reste;
-        var dt = d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleString('fr-FR') : '';
-        var amountPaid = d.amountGiven || 0;
-        var mode = d.paymentMethod || '-';
-        var actions = '<button class="btn-edit" onclick="printFacture(\''+d.id+'\')"><i class="fas fa-print"></i></button> ';
-        if (!d.paid) actions += '<button class="btn-add" style="padding:4px 8px;font-size:0.65rem;" onclick="markCreditPaid(\''+d.id+'\')">Payer</button> ';
-        var isAdmin = window.currentUserData && window.currentUserData.userData.role === 'admin';
-        if (isAdmin) {
-            actions += '<button class="btn-edit" onclick="editCredit(\''+d.id+'\')"><i class="fas fa-edit"></i></button> ';
-            actions += '<button class="btn-delete" onclick="deleteCredit(\''+d.id+'\')"><i class="fas fa-trash"></i></button>';
-        }
-        h += '<tr><td>'+(d.factureNum||d.id.substring(0,8))+'</td><td>'+dt+'</td><td>'+(d.clientName||d.table||'-')+'</td><td>'+d.total.toFixed(2)+'</td><td>'+amountPaid.toFixed(2)+'</td><td style="color:#ef4444;"><strong>'+reste.toFixed(2)+'</strong></td><td>'+mode+'</td><td>'+(d.vendeur||'-')+'</td><td>'+actions+'</td></tr>';
-    });
-    h += '</tbody></table></div><div style="margin-top:15px;padding:15px;background:#fef2f2;border-radius:12px;text-align:center;"><strong>Impayés: '+tc.toFixed(2)+' MAD</strong></div>';
-    cont.innerHTML = h;
-    document.getElementById('creditsPagination').innerHTML = getPaginationHTML('credits', data.length);
-}
-
-function editCredit(did) {
-    db.collection('credits').doc(did).get().then(function(doc) {
-        if (doc.exists) {
-            editingId = did; currentCollection = 'credits';
-            var d = doc.data();
-            var h = '<div class="form-row"><div class="form-group"><label>Statut</label><select id="editCreditPaid"><option value="1" ' + (d.paid ? 'selected' : '') + '>Payé</option><option value="0" ' + (!d.paid ? 'selected' : '') + '>Impayé</option></select></div><div class="form-group"><label>Montant payé</label><input type="number" id="editAmountGiven" value="' + (d.amountGiven || 0) + '" step="0.01"></div></div>';
-            h += '<div class="form-row"><div class="form-group"><label>Reste à payer</label><input type="number" id="editRemaining" value="' + (d.remainingAmount || d.total || 0) + '" step="0.01"></div><div class="form-group"><label>Mode de paiement</label><input type="text" id="editPaymentMethod" value="' + (d.paymentMethod || '') + '"></div></div>';
-            h += '<button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="saveEditCredit()">Enregistrer</button>';
-            openModal('Modifier crédit ' + (d.factureNum || did), h);
-        }
-    });
-}
-
-function saveEditCredit() {
-    var paid = document.getElementById('editCreditPaid').value === '1';
-    var amountGiven = parseFloat(document.getElementById('editAmountGiven').value) || 0;
-    var remaining = parseFloat(document.getElementById('editRemaining').value) || 0;
-    var paymentMethod = document.getElementById('editPaymentMethod').value.trim();
-    var data = { paid: paid, amountGiven: amountGiven, remainingAmount: paid ? 0 : remaining, paymentMethod: paymentMethod, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-    saveDocument('credits', data, function() { closeModal(); loadCredits(); });
-}
-
-function deleteCredit(did) {
-    if (confirm('Supprimer ce crédit ?')) {
-        CacheDB.write('credits', did, null, 'delete').then(function() { alert('Supprimé'); loadCredits(); CacheDB.sync(); });
-    }
-}
-
-async function markCreditPaid(cid) {
-    if (confirm('Marquer ce crédit comme totalement payé ?')) {
-        await CacheDB.write('credits', cid, { paid: true, remainingAmount: 0, paidAt: firebase.firestore.FieldValue.serverTimestamp() }, 'update');
-        alert('✅ Payé'); loadCredits(); CacheDB.sync();
-    }
-}
-
-// ==================== OPTIONS ====================
+// ==================== OPTIONS (simplifié) ====================
 function loadOptionsPage(c) {
     if (!window.currentUserData || window.currentUserData.userData.role !== 'admin') { c.innerHTML = '<p>Accès refusé</p>'; return; }
-    c.innerHTML =
-    '<div class="stats-grid">'+
-    '<div class="stat-card"><div class="stat-icon" style="background:#fef3c7;"><i class="fas fa-clock" style="color:#d97706;"></i></div><div class="stat-info"><span>En attente</span><span class="stat-value" id="pendingCount">0</span></div></div>'+
-    '<div class="stat-card"><div class="stat-icon" style="background:#dcfce7;"><i class="fas fa-check-circle" style="color:#16a34a;"></i></div><div class="stat-info"><span>Autorisés</span><span class="stat-value" id="authorizedCount">0</span></div></div>'+
-    '<div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;"><i class="fas fa-users" style="color:#4f46e5;"></i></div><div class="stat-info"><span>Total</span><span class="stat-value" id="totalUsers">0</span></div></div>'+
-    '</div>'+
-    '<div class="content-card">'+
-        '<div class="card-header"><h3><i class="fas fa-lock"></i> Sécurité</h3>'+
-        '<button class="btn-add" onclick="toggleChangePasswordForm()"><i class="fas fa-key"></i> Changer le mot de passe</button></div>'+
-        '<div id="changePasswordForm" class="hidden" style="margin-top:15px;">'+
-            '<div class="form-row">'+
-                '<div class="form-group"><label>Mot de passe actuel</label><input type="password" id="currentPassword" placeholder="Mot de passe actuel"></div>'+
-            '</div>'+
-            '<div class="form-row">'+
-                '<div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="newPassword" placeholder="6 caractères minimum"></div>'+
-                '<div class="form-group"><label>Confirmer le mot de passe</label><input type="password" id="confirmPassword" placeholder="Confirmer"></div>'+
-            '</div>'+
-            '<button class="btn-save" onclick="changeAdminPassword()" style="float:left;margin-top:10px;"><i class="fas fa-save"></i> Changer le mot de passe</button>'+
-        '</div>'+
-    '</div>'+
-    '<div class="content-card">'+
-        '<div class="card-header"><h3><i class="fas fa-bullhorn"></i> Programme marketing</h3>'+
-        '<button class="btn-add" onclick="toggleMarketingProgram()"><i class="fas fa-cog"></i> Gérer le programme de fidélité</button></div>'+
-        '<div id="marketingProgramContent" class="hidden" style="margin-top:15px;">'+
-            '<div style="display:flex; align-items:flex-end; gap:20px; flex-wrap:wrap;">'+
-                '<div class="form-group">'+
-                    '<label>Activer le programme</label>'+
-                    '<select id="fideliteActifSelect"><option value="1">✅ Actif</option><option value="0">❌ Inactif</option></select>'+
-                '</div>'+
-                '<div class="form-group">'+
-                    '<label>Points par vente</label>'+
-                    '<input type="number" id="fidelitePointsInput" value="1" min="1" step="1" style="width:100px;">'+
-                '</div>'+
-                '<button class="btn-save" onclick="saveFideliteSettings()" style="float:none;margin:0;height:44px;"><i class="fas fa-save"></i> Enregistrer</button>'+
-            '</div>'+
-        '</div>'+
-    '</div>'+
-    '<div class="content-card">'+
-        '<div class="card-header"><h3>Utilisateurs</h3>'+
-        '<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">'+
-            '<input type="text" id="usersSearchInput" placeholder="🔍 Rechercher (nom, email, username)..." style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; width:220px;" onkeyup="usersSearchQuery = this.value.trim().toLowerCase(); currentPages.users = 1; renderUsersTable();">'+
-            '<button class="btn-add" onclick="loadUsersList()"><i class="fas fa-sync"></i> Actualiser</button>'+
-        '</div></div>'+
-        '<div class="table-container"><table class="data-table" id="usersTable" style="font-size:0.85rem;"><thead><tr>'+
-            makeSortableHeader('users','username','Username','renderUsersTable')+
-            makeSortableHeader('users','nom','Nom','renderUsersTable')+
-            makeSortableHeader('users','email','Email','renderUsersTable')+
-            makeSortableHeader('users','role','Rôle','renderUsersTable')+
-            makeSortableHeader('users','authorized','Statut','renderUsersTable')+
-            '<th>Actions</th>'+
-        '</tr></thead><tbody></tbody></table></div>'+
-        '<div id="usersPagination"></div>'+
-    '</div>';
+    c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-lock"></i> Sécurité</h3><button class="btn-add" onclick="toggleChangePasswordForm()"><i class="fas fa-key"></i> Changer le mot de passe</button></div><div id="changePasswordForm" class="hidden" style="margin-top:15px;"><div class="form-row"><div class="form-group"><label>Mot de passe actuel</label><input type="password" id="currentPassword" placeholder="Mot de passe actuel"></div></div><div class="form-row"><div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="newPassword" placeholder="6 caractères minimum"></div><div class="form-group"><label>Confirmer le mot de passe</label><input type="password" id="confirmPassword" placeholder="Confirmer"></div></div><button class="btn-save" onclick="changeAdminPassword()" style="float:left;margin-top:10px;"><i class="fas fa-save"></i> Changer le mot de passe</button></div></div><div class="content-card"><div class="card-header"><h3><i class="fas fa-users"></i> Utilisateurs</h3><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;"><input type="text" id="usersSearchInput" placeholder="🔍 Rechercher (nom, email, username)..." style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; width:220px;" onkeyup="usersSearchQuery = this.value.trim().toLowerCase(); currentPages.users = 1; renderUsersTable();"><button class="btn-add" onclick="loadUsersList()"><i class="fas fa-sync"></i> Actualiser</button></div></div><div class="table-container"><table class="data-table" id="usersTable" style="font-size:0.85rem;"><thead><tr>'+makeSortableHeader('users','username','Username','renderUsersTable')+makeSortableHeader('users','nom','Nom','renderUsersTable')+makeSortableHeader('users','email','Email','renderUsersTable')+makeSortableHeader('users','role','Rôle','renderUsersTable')+makeSortableHeader('users','authorized','Statut','renderUsersTable')+'<th>Actions</th></tr></thead><tbody></tbody></table></div><div id="usersPagination"></div></div>';
     loadUsersList();
-}
-
-function toggleMarketingProgram() {
-    var div = document.getElementById('marketingProgramContent');
-    if (div) {
-        if (div.classList.contains('hidden')) {
-            div.classList.remove('hidden');
-            loadFideliteSettings();
-        } else {
-            div.classList.add('hidden');
-        }
-    }
 }
 
 function loadUsersList() {
@@ -1360,7 +1117,6 @@ function loadUsersList() {
         document.getElementById('pendingCount').textContent = p;
         document.getElementById('authorizedCount').textContent = a;
         document.getElementById('totalUsers').textContent = allUsersData.length;
-
         currentPages.users = 1;
         renderUsersTable();
     });
@@ -1369,7 +1125,6 @@ function loadUsersList() {
 function renderUsersTable() {
     var tb = document.querySelector('#usersTable tbody');
     if (!tb) return;
-
     var data = allUsersData.slice();
     if (usersSearchQuery) {
         data = data.filter(function(u) {
@@ -1379,17 +1134,14 @@ function renderUsersTable() {
         });
     }
     window.filteredUsers = data;
-
     data = applySort('users', data, 'username');
     var pageData = getPageData('users', data);
-
     tb.innerHTML = '';
     if (pageData.length === 0) {
         tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Aucun utilisateur trouvé</td></tr>';
         document.getElementById('usersPagination').innerHTML = '';
         return;
     }
-
     pageData.forEach(function(u) {
         var badge = u.authorized === 'yes' ? '<span class="status-success">✅ OK</span>' : '<span class="status-warning">⏳ En attente</span>';
         var act = u.authorized === 'no' ?
@@ -1399,16 +1151,15 @@ function renderUsersTable() {
             '<button style="padding:4px 8px;font-size:0.7rem;margin-right:4px;color:#d97706;border:none;background:#fef3c7;border-radius:6px;cursor:pointer;" onclick="blockUser(\'' + u.id + '\')">⛔ Bloquer</button>' +
             '<button class="btn-delete" style="padding:4px 8px;font-size:0.7rem;" onclick="deleteUserPermanently(\'' + u.id + '\')">🗑 Supprimer</button>';
         var row = '<tr>'+
-            '<td><strong>@' + (u.username||'') + '</strong></td>'+
-            '<td>' + (u.prenom||'') + ' ' + (u.nom||'') + '</td>'+
-            '<td>' + (u.email||'') + '</td>'+
-            '<td>' + (u.role||'') + '</td>'+
+            '<td><strong>@' + escapeHtml(u.username||'') + '</strong></td>'+
+            '<td>' + escapeHtml(u.prenom||'') + ' ' + escapeHtml(u.nom||'') + '</td>'+
+            '<td>' + escapeHtml(u.email||'') + '</td>'+
+            '<td>' + escapeHtml(u.role||'') + '</td>'+
             '<td>' + badge + '</td>'+
             '<td>' + act + '</td>'+
         '</tr>';
         tb.innerHTML += row;
     });
-
     document.getElementById('usersPagination').innerHTML = getPaginationHTML('users', data.length);
 }
 
@@ -1424,43 +1175,23 @@ function deleteUserPermanently(uid) {
     }
 }
 
-// ==================== AFFICHAGE / MASQUAGE FORMULAIRE MOT DE PASSE ====================
 function toggleChangePasswordForm() {
     var form = document.getElementById('changePasswordForm');
     if (form) {
-        if (form.classList.contains('hidden')) {
-            form.classList.remove('hidden');
-        } else {
-            form.classList.add('hidden');
-        }
+        if (form.classList.contains('hidden')) form.classList.remove('hidden');
+        else form.classList.add('hidden');
     }
 }
 
-// ==================== CHANGEMENT DE MOT DE PASSE ADMIN ====================
 async function changeAdminPassword() {
     var currentPass = document.getElementById('currentPassword').value.trim();
     var newPass = document.getElementById('newPassword').value.trim();
     var confirmPass = document.getElementById('confirmPassword').value.trim();
-
-    if (!currentPass || !newPass || !confirmPass) {
-        alert('Tous les champs sont obligatoires.');
-        return;
-    }
-    if (newPass.length < 6) {
-        alert('Le mot de passe doit contenir au moins 6 caractères.');
-        return;
-    }
-    if (newPass !== confirmPass) {
-        alert('Les mots de passe ne correspondent pas.');
-        return;
-    }
-
+    if (!currentPass || !newPass || !confirmPass) { alert('Tous les champs sont obligatoires.'); return; }
+    if (newPass.length < 6) { alert('Le mot de passe doit contenir au moins 6 caractères.'); return; }
+    if (newPass !== confirmPass) { alert('Les mots de passe ne correspondent pas.'); return; }
     var user = auth.currentUser;
-    if (!user) {
-        alert('Aucun utilisateur connecté.');
-        return;
-    }
-
+    if (!user) { alert('Aucun utilisateur connecté.'); return; }
     var credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
     try {
         await user.reauthenticateWithCredential(credential);
@@ -1472,45 +1203,9 @@ async function changeAdminPassword() {
         toggleChangePasswordForm();
     } catch (error) {
         console.error(error);
-        if (error.code === 'auth/wrong-password') {
-            alert('❌ Mot de passe actuel incorrect.');
-        } else {
-            alert('Erreur : ' + error.message);
-        }
+        if (error.code === 'auth/wrong-password') alert('❌ Mot de passe actuel incorrect.');
+        else alert('Erreur : ' + error.message);
     }
 }
 
-// ==================== GESTION DE LA FIDÉLITÉ ====================
-async function loadFideliteSettings() {
-    let active = true;
-    let points = 1;
-    try {
-        const doc = await db.collection('settings').doc('fidelite').get();
-        if (doc.exists) {
-            active = doc.data().active === true;
-            points = doc.data().pointsParVente || 1;
-        }
-    } catch(e) {
-        active = localStorage.getItem('fidelite_active') === 'true';
-        points = parseInt(localStorage.getItem('fidelite_points')) || 1;
-    }
-    var actifSelect = document.getElementById('fideliteActifSelect');
-    var pointsInput = document.getElementById('fidelitePointsInput');
-    if (actifSelect) actifSelect.value = active ? '1' : '0';
-    if (pointsInput) pointsInput.value = points;
-}
-
-async function saveFideliteSettings() {
-    var active = document.getElementById('fideliteActifSelect').value === '1';
-    var points = parseInt(document.getElementById('fidelitePointsInput').value) || 1;
-    try {
-        await db.collection('settings').doc('fidelite').set({ active: active, pointsParVente: points }, { merge: true });
-    } catch(e) {
-        console.warn('Firestore inaccessible, sauvegarde locale');
-    }
-    localStorage.setItem('fidelite_active', active);
-    localStorage.setItem('fidelite_points', points);
-    alert('✅ Paramètres de fidélité enregistrés');
-}
-
-console.log('Admin JS (complet, sans perte) prêt.');
+console.log('☕ Alma Coffee Shop - Admin JS prêt');
