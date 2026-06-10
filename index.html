@@ -51,7 +51,13 @@
                     <div class="input-group"><i class="fas fa-at"></i><input type="text" id="regUsername" placeholder="Nom d'utilisateur" required></div>
                     <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="regEmail" placeholder="Email" required></div>
                     <div class="input-group"><i class="fas fa-phone"></i><input type="tel" id="regTelephone" placeholder="Téléphone" required></div>
-                    <div class="input-group"><i class="fas fa-briefcase"></i><select id="regRole"><option value="client">Client</option><option value="caissier">Caissier</option></select></div>
+                    <div class="input-group"><i class="fas fa-briefcase"></i>
+                        <select id="regRole">
+                            <option value="client">Client</option>
+                            <option value="caissier">Caissier</option>
+                            <option value="admin">Administrateur</option>
+                        </select>
+                    </div>
                     <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="regPassword" placeholder="Mot de passe (min 6 caractères)" required></div>
                     <button type="submit" class="btn-login" id="registerBtn"><i class="fas fa-user-plus"></i> Créer mon compte</button>
                 </form>
