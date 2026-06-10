@@ -1,32 +1,43 @@
-// ==================== CAISSIER.JS ====================
-// Le caissier utilise les mêmes modules que l'admin (admin.js, pos.js)
-// Ce fichier sert uniquement à initialiser des fonctions spécifiques
-// et à vérifier que l'utilisateur a bien le rôle 'caissier'.
+// ==================== CAISSIER.JS - ALMA COFFEE SHOP ====================
 
 (function() {
-    // Attendre que l'utilisateur soit chargé
-    var checkUser = setInterval(function() {
-        if (window.currentUserData) {
-            clearInterval(checkUser);
-            if (window.currentUserData.userData.role !== 'caissier') {
-                console.warn('Ce fichier est réservé au caissier. Redirection...');
-                if (window.currentUserData.userData.role === 'admin') {
-                    showDashboard();
-                } else if (window.currentUserData.userData.role === 'client') {
-                    showClientPage();
-                }
-            } else {
-                console.log('✅ Interface caissier chargée');
-                // Optionnel : surcharger certaines fonctions pour restreindre l'accès
-                // Par exemple, désactiver la modification des produits si nécessaire
-                // Mais actuellement, le menu caissier ne donne pas accès à ces pages.
-            }
-        }
-    }, 300);
-})();
+    let attempts = 0;
+    const maxAttempts = 50;
+    const interval = 300;
+    let intervalId = null;
 
-// Fonctions de chargement spécifiques au caissier (si besoin)
-// Elles appellent les fonctions globales déjà définies dans admin.js et pos.js
+    function redirectToValidRole() {
+        if (!window.currentUserData) {
+            if (++attempts >= maxAttempts) {
+                console.error('Impossible de détecter l\'utilisateur connecté');
+                if (intervalId) clearInterval(intervalId);
+                if (typeof showAuthPage === 'function') showAuthPage();
+            }
+            return false;
+        }
+        if (intervalId) clearInterval(intervalId);
+
+        const role = window.currentUserData.userData.role;
+        if (role !== 'caissier') {
+            console.warn(`Rôle ${role} détecté, redirection...`);
+            if (role === 'admin' && typeof showDashboard === 'function') {
+                showDashboard();
+            } else if (role === 'client' && typeof showClientPage === 'function') {
+                showClientPage();
+            } else if (typeof showAuthPage === 'function') {
+                showAuthPage();
+            }
+            return false;
+        }
+
+        console.log('☕ Interface caissier chargée');
+        return true;
+    }
+
+    intervalId = setInterval(function() {
+        redirectToValidRole();
+    }, interval);
+})();
 
 function loadCaissierDashboard() {
     if (typeof loadDashboardPage === 'function') {
@@ -68,8 +79,4 @@ function loadCaissierCredits() {
     }
 }
 
-// Ces fonctions sont déjà appelées par navigateTo() via les noms génériques
-// (loadPosPage, loadCommandesPage, loadVentesPage, loadCreditsPage)
-// donc aucune redirection supplémentaire n'est nécessaire.
-
-console.log('Caissier JS prêt - utilise les modules admin et pos');
+console.log('☕ Alma Coffee Shop - Caissier JS prêt');
