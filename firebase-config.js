@@ -1,20 +1,17 @@
 // ==================== FIREBASE CONFIGURATION - ALMA COFFEE SHOP ====================
-// ⚠️ REMPLACEZ PAR VOTRE PROPRE CONFIGURATION (créée sur Firebase Console)
 
 const firebaseConfig = {
-    apiKey: "VOTRE_API_KEY_ICI",
+    apiKey: "AIzaSyDI_GLjl0xqL1-WBhI9uPrCHXi9iFyfROU",
     authDomain: "alma-coffee-shop.firebaseapp.com",
     projectId: "alma-coffee-shop",
     storageBucket: "alma-coffee-shop.firebasestorage.app",
-    messagingSenderId: "VOTRE_MESSAGING_SENDER_ID",
-    appId: "VOTRE_APP_ID"
+    messagingSenderId: "267294965703",
+    appId: "1:267294965703:web:54581b103c1c5b5c16a3e2"
 };
 
-// Initialisation Firebase
-if (!firebase.apps.length) {
+// Initialisation Firebase (version compat pour les scripts existants)
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-} else {
-    firebase.app();
 }
 
 const auth = firebase.auth();
@@ -22,3 +19,4 @@ const db = firebase.firestore();
 const storage = firebase.storage();
 
 console.log('☕ Alma Coffee Shop - Firebase OK');
+console.log('✓ Projet:', firebaseConfig.projectId);
