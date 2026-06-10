@@ -1,282 +1,152 @@
-// ==================== MENU TACTILE AVEC PERSONNALISATION (INGRÉDIENTS RÉELS, CATÉGORISÉS) ====================
-var menuTableNum = null;
-var menuCart = [];
-var menuCategories = [];
-var menuProducts = [];
-var menuSelectedCategory = 'all';
-var menuCurrentProductId = null;
+// ==================== CLIENT.JS - ALMA COFFEE SHOP (PARTIE 2) ====================
 
-var menuEpices = ['Normal','Moins épicé','Très épicé','Sans épice'];
-var menuSel = ['Normal','Moins de sel','Sans sel'];
-
-var allStockData = []; // sera chargé depuis Firestore si nécessaire
-
-function closeMenuTactile() { window.location.href = window.location.pathname; }
-function requestFullscreen() {
-    const elem = document.documentElement;
-    const method = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
-    if (method) method.call(elem).catch(err => console.log(err));
-    else alert("Ajouter à l'écran d'accueil pour le plein écran.");
-}
-
-function initMenuTactile(tableNum) {
-    menuTableNum = tableNum;
-    document.body.style.overflowX = 'hidden';
-    document.body.style.margin = '0'; document.body.style.padding = '0';
-    document.documentElement.style.overflowX = 'hidden';
-    const container = document.getElementById('menuTactilePage');
-    if (container) { container.style.width = '100%'; container.style.maxWidth = '100%'; container.style.overflowX = 'hidden'; }
-    if (typeof db === 'undefined' || typeof CacheDB === 'undefined') { setTimeout(() => initMenuTactile(tableNum), 500); return; }
-    loadMenuData();
-}
-
-async function loadMenuData() {
+async function loadClientHistoriquePage() {
+    var c = document.getElementById('clientDynamicContent'); if (!c) return;
+    c.innerHTML = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-history"></i> Mon historique</h3></div><div id="clientOrdersList" style="text-align:center;padding:20px;">Chargement...</div></div>';
+    if (!window.currentUserData) { var cont0 = document.getElementById('clientOrdersList'); if (cont0) cont0.innerHTML = '<p>Non connecté</p>'; return; }
+    var uid = window.currentUserData.uid, clientName = (window.currentUserData.userData.prenom + ' ' + window.currentUserData.userData.nom).toLowerCase().trim(), clientEmail = (window.currentUserData.userData.email || '').toLowerCase().trim(), clientTelephone = (window.currentUserData.userData.telephone || '').trim();
     try {
-        var content = document.getElementById('menuTactileContent');
-        if (content) content.innerHTML = '<div style="text-align:center;padding:60px;"><i class="fas fa-spinner fa-spin" style="font-size:3rem;color:#f39c12;"></i><p>Chargement...</p></div>';
-
-        // Charger les catégories et produits
-        var catSnap = await db.collection('categories').get();
-        menuCategories = [];
-        catSnap.forEach(d => menuCategories.push({ id: d.id, nom: d.data().nom || 'Sans nom', imageBase64: d.data().imageBase64 || '', recette: d.data().recette || false }));
-
-        var prodSnap = await db.collection('products').get();
-        menuProducts = [];
-        prodSnap.forEach(d => {
-            var dd = d.data();
-            if (dd.disponible !== false) {
-                menuProducts.push({
-                    id: d.id, nom: dd.nom || 'Sans nom', prixVente: dd.prixVente||0, prixPromo: dd.prixPromo||0,
-                    stock: dd.stock, categorie: dd.categorie || '', imageBase64: dd.imageBase64 || ''
-                });
-            }
-        });
-
-        // Précharger le stock pour la personnalisation (nécessaire pour les catégories)
+        let cmdSnap, venteSnap;
         try {
-            const stockSnap = await db.collection('stock').orderBy('nom').get();
-            allStockData = [];
-            stockSnap.forEach(d => { let dd = d.data(); dd.id = d.id; allStockData.push(dd); });
-        } catch(e) { console.error('Erreur chargement stock menu tactile', e); }
+            cmdSnap = await db.collection('commandes').where('clientId', '==', uid).get();
+            venteSnap = await db.collection('ventes').where('clientId', '==', uid).get();
+        } catch(e) {
+            cmdSnap = await db.collection('commandes').get();
+            venteSnap = await db.collection('ventes').get();
+        }
+        var all = [];
+        cmdSnap.forEach(function(d) { var cmd = d.data(); if (cmd.clientId === uid) all.push({type: 'commande', data: cmd, date: cmd.createdAt}); });
+        venteSnap.forEach(function(d) { var v = d.data(); if (v.clientId === uid) all.push({type: 'vente', data: v, date: v.createdAt}); });
+        all.sort(function(a, b) { return (b.date?.seconds || 0) - (a.date?.seconds || 0); }); all = all.slice(0, 50);
+        var cont = document.getElementById('clientOrdersList'); if (!cont) return;
+        if (all.length === 0) { cont.innerHTML = '<p style="padding:40px;color:#94a3b8;"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px;"></i>Aucun historique</p>'; return; }
+        var h = '<div class="table-container"><table class="data-table" style="font-size:0.75rem;"><thead><tr><th>Date</th><th>Type</th><th>N° Facture</th><th>Articles</th><th>Total</th><th>Vendeur</th><th>Paiement</th><th>Statut</th></tr></thead><tbody>';
+        all.forEach(function(item) { var d = item.data, date = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString('fr-FR') : '', type = item.type === 'commande' ? '<span class="status-warning">🛒 Commande</span>' : '<span style="color:#A67C52;">💰 Vente</span>', facture = d.factureNum || '-', arts = d.items ? d.items.map(function(it) { return it.quantite + 'x ' + escapeHtml(it.nom); }).join('<br>') : '-', vendeur = d.vendeur || d.createdBy || '-', paiement = d.paymentMethod === 'espece' ? 'Espèces' : d.paymentMethod === 'credit' ? 'Crédit' : d.paymentMethod === 'partiel' ? 'Partiel' : '-', statut = item.type === 'commande' ? (d.statut === 'valide' ? '✅ Validée' : d.statut === 'payé' ? '💵 Payée' : '⏳ En attente') : (d.paid ? '✅ Payé' : d.statutPaiement === 'crédit' ? '📋 Crédit' : d.statutPaiement === 'partiel' ? '🔶 Partiel' : '⏳ En attente'), sc = (statut.includes('✅') || statut.includes('💵')) ? '#16a34a' : '#d97706'; h += '<tr><td>' + date + '</td><td>' + type + '</td><td><small>' + facture + '</small></td><td><small>' + arts + '</small><td><strong>' + (d.total || 0).toFixed(2) + ' MAD</strong></td><td>' + vendeur + '</td><td>' + paiement + '</td><td><span style="color:' + sc + ';">' + statut + '</span></td></tr>'; });
+        h += '</tbody></table></div>'; cont.innerHTML = h;
+    } catch(e) { var cont2 = document.getElementById('clientOrdersList'); if (cont2) cont2.innerHTML = '<p style="color:#ef4444;">Erreur</p>'; }
+}
 
-        renderMenuTactile();
+async function loadClientParametresPage() {
+    var c = document.getElementById('clientDynamicContent');
+    if (!c) return;
+    if (!window.currentUserData) { c.innerHTML = '<div class="content-card"><p>Non connecté</p></div>'; return; }
+    var clientData = null;
+    var clientDocId = null;
+    var userEmail = window.currentUserData.userData.email;
+    try {
+        var clientSnap = await db.collection('clients').where('email', '==', userEmail).get();
+        if (!clientSnap.empty) { clientDocId = clientSnap.docs[0].id; clientData = clientSnap.docs[0].data(); }
+    } catch(e) { console.error('Erreur chargement profil:', e); }
+    if (!clientData) clientData = window.currentUserData.userData;
+    var dateCreated = clientData.createdAt ? new Date(clientData.createdAt.seconds * 1000).toLocaleString('fr-FR') : 'N/A';
+    var h = '<div class="content-card"><div class="card-header"><h3><i class="fas fa-user-circle"></i> Mon Profil</h3></div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.9rem;">';
+    h += '<div><strong>ID:</strong> ' + (clientDocId ? clientDocId.substring(0, 8) : 'N/A') + '</div>';
+    h += '<div><strong>Nom:</strong> ' + escapeHtml(clientData.nom || '') + '</div>';
+    h += '<div><strong>Prénom:</strong> ' + escapeHtml(clientData.prenom || '') + '</div>';
+    h += '<div><strong>Username:</strong> @' + escapeHtml(clientData.username || '') + '</div>';
+    h += '<div><strong>Genre:</strong> ' + escapeHtml(clientData.genre || '-') + '</div>';
+    h += '<div><strong>Adresse:</strong> ' + escapeHtml(clientData.adresse || '-') + '</div>';
+    h += '<div><strong>Email:</strong> ' + escapeHtml(clientData.email || '') + '</div>';
+    h += '<div><strong>Tél:</strong> ' + escapeHtml(clientData.telephone || '-') + '</div>';
+    h += '<div><strong>WhatsApp:</strong> ' + escapeHtml(clientData.whatsapp || '-') + '</div>';
+    h += '<div><strong>Facebook:</strong> ' + escapeHtml(clientData.facebook || '-') + '</div>';
+    h += '<div><strong>Instagram:</strong> ' + escapeHtml(clientData.instagram || '-') + '</div>';
+    h += '<div><strong>Points Fidélité:</strong> ' + (clientData.pointsFidelite || 0) + '</div>';
+    h += '<div><strong>Allergies:</strong> ' + (clientData.allergies ? clientData.allergies.join(', ') : '-') + '</div>';
+    h += '<div><strong>Aime:</strong> ' + (clientData.aime ? clientData.aime.join(', ') : '-') + '</div>';
+    h += '<div><strong>Déteste:</strong> ' + (clientData.deteste ? clientData.deteste.join(', ') : '-') + '</div>';
+    h += '<div><strong>Date créé:</strong> ' + dateCreated + '</div>';
+    h += '</div>';
+    h += '<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">';
+    h += '<button class="btn-add" onclick="clientOpenEditProfile()"><i class="fas fa-edit"></i> Modifier mon profil</button>';
+    h += '<button class="btn-save" onclick="clientOpenChangePassword()"><i class="fas fa-lock"></i> Changer mot de passe</button>';
+    h += '</div>';
+    h += '</div>';
+    c.innerHTML = h;
+    window.clientProfileData = clientData;
+    window.clientProfileDocId = clientDocId;
+}
+
+function clientOpenEditProfile() {
+    var data = window.clientProfileData || window.currentUserData.userData;
+    var h = '';
+    h += '<div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="clientEditNom" value="' + escapeHtml(data.nom || '') + '" required></div><div class="form-group"><label>Prénom *</label><input type="text" id="clientEditPrenom" value="' + escapeHtml(data.prenom || '') + '" required></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Genre</label><select id="clientEditGenre"><option value="">-</option><option value="M" ' + (data.genre === 'M' ? 'selected' : '') + '>M</option><option value="F" ' + (data.genre === 'F' ? 'selected' : '') + '>F</option></select></div><div class="form-group"><label>Adresse</label><input type="text" id="clientEditAdresse" value="' + escapeHtml(data.adresse || '') + '"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Téléphone</label><input type="text" id="clientEditTel" value="' + escapeHtml(data.telephone || '') + '"></div><div class="form-group"><label>WhatsApp</label><input type="text" id="clientEditWhatsapp" value="' + escapeHtml(data.whatsapp || '') + '"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Facebook</label><input type="text" id="clientEditFacebook" value="' + escapeHtml(data.facebook || '') + '"></div><div class="form-group"><label>Instagram</label><input type="text" id="clientEditInstagram" value="' + escapeHtml(data.instagram || '') + '"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Allergies (virgules)</label><input type="text" id="clientEditAllergies" value="' + (data.allergies ? data.allergies.join(', ') : '') + '" placeholder="gluten, lactose"></div><div class="form-group"><label>Aime (virgules)</label><input type="text" id="clientEditAime" value="' + (data.aime ? data.aime.join(', ') : '') + '" placeholder="café, thé"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Déteste (virgules)</label><input type="text" id="clientEditDeteste" value="' + (data.deteste ? data.deteste.join(', ') : '') + '" placeholder="oignon, tomate"></div></div>';
+    h += '<button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="clientSaveProfile()">Enregistrer</button>';
+    openModal('✏️ Modifier mon profil', h);
+}
+
+async function clientSaveProfile() {
+    var nom = document.getElementById('clientEditNom').value.trim();
+    var prenom = document.getElementById('clientEditPrenom').value.trim();
+    if (!nom || !prenom) { alert('Nom et Prénom obligatoires'); return; }
+    var updatedData = {
+        nom: nom, prenom: prenom,
+        genre: document.getElementById('clientEditGenre').value,
+        adresse: document.getElementById('clientEditAdresse').value,
+        telephone: document.getElementById('clientEditTel').value,
+        whatsapp: document.getElementById('clientEditWhatsapp').value,
+        facebook: document.getElementById('clientEditFacebook').value,
+        instagram: document.getElementById('clientEditInstagram').value,
+        allergies: document.getElementById('clientEditAllergies').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+        aime: document.getElementById('clientEditAime').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+        deteste: document.getElementById('clientEditDeteste').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    try {
+        var docId = window.clientProfileDocId;
+        if (docId) {
+            await CacheDB.write('clients', docId, updatedData, 'update');
+            await CacheDB.write('users', window.currentUserData.uid, { nom: nom, prenom: prenom, telephone: updatedData.telephone }, 'update');
+        } else {
+            updatedData.email = window.currentUserData.userData.email;
+            updatedData.username = window.currentUserData.userData.username;
+            updatedData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            var newDocId = await CacheDB.write('clients', null, updatedData, 'add');
+            window.clientProfileDocId = newDocId;
+        }
+        window.currentUserData.userData.nom = nom;
+        window.currentUserData.userData.prenom = prenom;
+        window.clientProfileData = updatedData;
+        alert('✅ Profil mis à jour !');
+        closeModal();
+        loadClientParametresPage();
+        CacheDB.sync();
+    } catch(e) { alert('Erreur: ' + e.message); }
+}
+
+function clientOpenChangePassword() {
+    var h = '<div class="form-row"><div class="form-group"><label>Mot de passe actuel</label><input type="password" id="clientOldPassword" required></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="clientNewPassword" required minlength="6"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Confirmer nouveau mot de passe</label><input type="password" id="clientConfirmPassword" required minlength="6"></div></div>';
+    h += '<button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="clientChangePassword()">Changer le mot de passe</button>';
+    openModal('🔒 Changer mot de passe', h);
+}
+
+async function clientChangePassword() {
+    var oldPass = document.getElementById('clientOldPassword').value;
+    var newPass = document.getElementById('clientNewPassword').value;
+    var confirmPass = document.getElementById('clientConfirmPassword').value;
+    if (!oldPass || !newPass || !confirmPass) { alert('Tous les champs sont obligatoires'); return; }
+    if (newPass.length < 6) { alert('Le nouveau mot de passe doit contenir au moins 6 caractères'); return; }
+    if (newPass !== confirmPass) { alert('Les mots de passe ne correspondent pas'); return; }
+    var user = auth.currentUser;
+    if (!user) { alert('Vous n\'êtes pas connecté'); return; }
+    var credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
+    try {
+        await user.reauthenticateWithCredential(credential);
+        await user.updatePassword(newPass);
+        alert('✅ Mot de passe changé avec succès !');
+        closeModal();
     } catch(e) {
-        console.error(e);
-        var content = document.getElementById('menuTactileContent');
-        if (content) content.innerHTML = '<div style="text-align:center;padding:50px;"><i class="fas fa-exclamation-circle" style="font-size:3rem;color:#ef4444;"></i><p>Erreur</p><button onclick="loadMenuData()">Réessayer</button></div>';
+        if (e.code === 'auth/wrong-password') alert('❌ Mot de passe actuel incorrect');
+        else alert('Erreur: ' + e.message);
     }
 }
 
-function renderMenuTactile() {
-    var content = document.getElementById('menuTactileContent'); if (!content) return;
-    var total = menuCalcTotal();
-    var html = '';
-
-    // En-tête
-    html += '<div style="position:sticky; top:0; z-index:20; background:linear-gradient(135deg,#f39c12,#e67e22); color:#fff; border-radius:0 0 24px 24px; margin-bottom:15px; text-align:center; padding:20px 15px;">';
-    html += '<button onclick="closeMenuTactile()" style="position:absolute; top:10px; right:15px; background:rgba(0,0,0,0.3); border:none; color:white; font-size:1.8rem; width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&times;</button>';
-    html += '<img src="logo.png" style="width:70px;height:70px;border-radius:50%;border:3px solid #fff;object-fit:cover;margin-bottom:8px;">';
-    html += '<h1 style="margin:0;font-size:1.4rem;">Chicken <span style="color:#fff;">Way</span></h1>';
-    html += '<p style="margin:5px 0 0;">🍽️ Table n° ' + menuTableNum + '</p></div>';
-
-    // Catégories
-    html += '<div style="overflow-x:auto;white-space:nowrap;padding:10px 10px 5px 10px;">';
-    html += '<button onclick="menuFilterCategory(\'all\')" style="display:inline-block;padding:8px 16px;margin:0 4px;border-radius:50px;border:2px solid '+(menuSelectedCategory==='all'?'#f39c12':'#e2e8f0')+';background:'+(menuSelectedCategory==='all'?'#f39c12':'#fff')+';color:'+(menuSelectedCategory==='all'?'#fff':'#1e293b')+';font-weight:600;">📋 Tous</button>';
-    for (var i=0; i<menuCategories.length; i++) {
-        var cat = menuCategories[i];
-        var active = menuSelectedCategory === cat.nom;
-        html += '<button onclick="menuFilterCategory(\''+cat.nom.replace(/'/g,"\\'")+'\')" style="display:inline-block;padding:8px 16px;margin:0 4px;border-radius:50px;border:2px solid '+(active?'#f39c12':'#e2e8f0')+';background:'+(active?'#f39c12':'#fff')+';color:'+(active?'#fff':'#1e293b')+';font-weight:600;">'+cat.nom+'</button>';
-    }
-    html += '</div>';
-
-    // Produits
-    var filtered = menuProducts;
-    if (menuSelectedCategory !== 'all') filtered = menuProducts.filter(p => p.categorie === menuSelectedCategory);
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:10px;padding:10px;">';
-    if (filtered.length === 0) {
-        html += '<div style="grid-column:1/-1;text-align:center;padding:30px;">Aucun produit</div>';
-    } else {
-        for (var j=0; j<filtered.length; j++) {
-            var p = filtered[j];
-            var price = (p.prixPromo && p.prixPromo>0) ? p.prixPromo : p.prixVente;
-            var outOfStock = p.stock !== undefined && p.stock <= 0;
-            html += '<div onclick="'+(outOfStock?'':'menuAddToCartOrOpenOptions(\''+p.id+'\')')+'" style="background:#fff;border:2px solid '+(outOfStock?'#fecaca':'#e2e8f0')+';border-radius:16px;padding:10px;cursor:'+(outOfStock?'not-allowed':'pointer')+';opacity:'+(outOfStock?'0.5':'1')+';text-align:center;">';
-            if (p.imageBase64) html += '<div style="height:100px;border-radius:12px;overflow:hidden;margin-bottom:6px;"><img src="'+p.imageBase64+'" style="width:100%;height:100%;object-fit:cover;"></div>';
-            else html += '<div style="height:100px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:2rem;">🍗</div>';
-            html += '<div style="font-weight:600;font-size:0.9rem;">'+p.nom+'</div>';
-            html += '<div style="font-weight:700;color:#e67e22;">'+price.toFixed(2)+' MAD</div>';
-            if (outOfStock) html += '<div style="font-size:0.7rem;color:#ef4444;">Rupture</div>';
-            html += '</div>';
-        }
-    }
-    html += '</div>';
-
-    // Panier
-    html += '<div style="position:sticky;bottom:0;background:#fff;padding:12px;border-radius:20px 20px 0 0;box-shadow:0 -2px 15px rgba(0,0,0,0.1);margin-top:10px;">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><strong>🛒 Mon panier</strong><span style="background:#f39c12;color:#fff;padding:2px 10px;border-radius:20px;">'+menuCart.length+' article(s)</span></div>';
-    if (menuCart.length === 0) {
-        html += '<p style="text-align:center;color:#94a3b8;margin:5px 0;">Cliquez sur un produit</p>';
-    } else {
-        html += '<div style="max-height:130px;overflow-y:auto;margin-bottom:8px;">';
-        for (var k=0; k<menuCart.length; k++) {
-            var it = menuCart[k];
-            html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f1f5f9;">';
-            html += '<span style="font-size:0.85rem;">'+it.quantite+'x '+it.nom+'</span>';
-            html += '<div><button onclick="menuUpdateQty('+k+',-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid #ccc;">-</button> <span style="min-width:24px;text-align:center;">'+it.quantite+'</span> <button onclick="menuUpdateQty('+k+',1)" style="width:26px;height:26px;border-radius:50%;border:1px solid #ccc;">+</button> <span style="min-width:65px;text-align:right;">'+(it.prixUnitaire*it.quantite).toFixed(2)+'</span></div>';
-            html += '</div>';
-        }
-        html += '</div>';
-    }
-    html += '<div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem;margin:8px 0;"><span>Total</span><span style="color:#e67e22;">'+total.toFixed(2)+' MAD</span></div>';
-    html += '<button onclick="menuValiderCommande()" '+(menuCart.length===0?'disabled':'')+' style="width:100%;padding:12px;border:none;border-radius:12px;background:'+(menuCart.length===0?'#cbd5e1':'linear-gradient(135deg,#f39c12,#e67e22)')+';color:#fff;font-weight:700;">✅ Commander</button>';
-    if (menuCart.length>0) html += '<button onclick="menuClearCart()" style="width:100%;margin-top:8px;padding:6px;border:1px solid #ccc;background:#fff;border-radius:12px;">🗑️ Vider</button>';
-    html += '</div>';
-
-    html += '<button onclick="requestFullscreen()" style="position:fixed;bottom:20px;right:20px;background:#f39c12;color:white;border:none;border-radius:50%;width:45px;height:45px;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,0.2);cursor:pointer;z-index:1000;">⛶</button>';
-
-    content.innerHTML = html;
-}
-
-function menuFilterCategory(cat) { menuSelectedCategory = cat; renderMenuTactile(); window.scrollTo({top:0,behavior:'smooth'}); }
-function menuUpdateQty(idx, delta) { if (!menuCart[idx]) return; var nq = menuCart[idx].quantite + delta; if (nq <= 0) menuCart.splice(idx,1); else menuCart[idx].quantite = nq; renderMenuTactile(); }
-function menuClearCart() { if (confirm('Vider le panier ?')) { menuCart = []; renderMenuTactile(); } }
-function menuCalcTotal() { return menuCart.reduce((sum, item) => sum + (item.prixUnitaire * item.quantite), 0); }
-
-// Décision recette / ajout direct
-function menuAddToCartOrOpenOptions(pid) {
-    var p = menuProducts.find(x => x.id === pid);
-    if (!p) return;
-    if (p.stock !== undefined && p.stock <= 0) { alert('⚠️ Rupture de stock.'); return; }
-    var cat = menuCategories.find(c => c.nom === p.categorie);
-    var isRecette = cat && cat.recette === true;
-
-    if (isRecette) {
-        menuCurrentProductId = pid;
-        menuOpenOptions(pid);
-    } else {
-        var existing = menuCart.find(x => x.id === pid);
-        if (existing) { if (p.stock !== undefined && existing.quantite >= p.stock) { alert('Stock insuffisant'); return; } existing.quantite++; }
-        else { var price = (p.prixPromo && p.prixPromo > 0) ? p.prixPromo : p.prixVente; menuCart.push({ id: p.id, nom: p.nom, prixUnitaire: price, quantite: 1, sauces: [], interdits: [], epice: 'Normal', sel: 'Normal' }); }
-        renderMenuTactile();
-    }
-}
-
-// ✅ Modal de personnalisation avec ingrédients réels, groupés par catégorie
-async function menuOpenOptions(pid) {
-    var p = menuProducts.find(x => x.id === pid);
-    if (!p) return;
-    if (p.stock !== undefined && p.stock <= 0) { alert('⚠️ Rupture'); return; }
-
-    // Si le stock n'est pas encore chargé, on le fait maintenant
-    if (allStockData.length === 0) {
-        try {
-            const snap = await db.collection('stock').orderBy('nom').get();
-            allStockData = [];
-            snap.forEach(d => { let dd = d.data(); dd.id = d.id; allStockData.push(dd); });
-        } catch(e) { console.error(e); }
-    }
-
-    // Récupérer les ingrédients du produit
-    var productIngredients = [];
-    try {
-        const doc = await db.collection('products').doc(pid).get();
-        if (doc.exists) {
-            var productData = doc.data();
-            productIngredients = productData.ingredients || [];
-        }
-    } catch(e) { console.error(e); }
-
-    // Regrouper par catégorie
-    var grouped = {};
-    productIngredients.forEach(function(ing) {
-        var stockItem = allStockData.find(function(s) { return s.id === ing.idStock; });
-        var cat = stockItem ? stockItem.categorie : 'Autre';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(ing.nom);
-    });
-
-    // Ordre d'affichage préféré
-    var order = ['Sauces', 'Légumes', 'Fruits', 'Viande', 'Poulet', 'Poisson'];
-    var sortedCats = Object.keys(grouped).sort(function(a, b) {
-        var idxA = order.indexOf(a), idxB = order.indexOf(b);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-        return a.localeCompare(b);
-    });
-
-    menuCurrentProductId = pid;
-    var h = '<h4>' + p.nom + '</h4>';
-
-    if (sortedCats.length === 0) {
-        h += '<div style="margin-bottom:12px;color:#94a3b8;">Aucun ingrédient à exclure</div>';
-    } else {
-        sortedCats.forEach(function(cat) {
-            h += '<div style="margin-bottom:12px;">';
-            h += '<label style="font-weight:600;">🥫 ' + cat + '</label>';
-            h += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
-            grouped[cat].forEach(function(ing) {
-                h += '<label style="display:flex;align-items:center;gap:4px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:0.75rem;">';
-                h += '<input type="checkbox" class="menu-interdit-check" value="' + ing + '"> ' + ing;
-                h += '</label>';
-            });
-            h += '</div></div>';
-        });
-    }
-
-    // Épices et Sel
-    h += '<div style="margin-bottom:12px;"><label style="font-weight:600;">🌶️ Épices:</label><div style="display:flex;flex-wrap:wrap;gap:5px;">';
-    menuEpices.forEach(function(s, idx) {
-        h += '<label style="display:flex;align-items:center;gap:4px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:0.75rem;"><input type="radio" name="menu-epice" value="' + s + '" ' + (idx === 0 ? 'checked' : '') + '> ' + s + '</label>';
-    });
-    h += '</div></div>';
-    h += '<div style="margin-bottom:12px;"><label style="font-weight:600;">🧂 Sel:</label><div style="display:flex;flex-wrap:wrap;gap:5px;">';
-    menuSel.forEach(function(s, idx) {
-        h += '<label style="display:flex;align-items:center;gap:4px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:0.75rem;"><input type="radio" name="menu-sel" value="' + s + '" ' + (idx === 0 ? 'checked' : '') + '> ' + s + '</label>';
-    });
-    h += '</div></div>';
-
-    h += '<div style="text-align:right;margin-top:15px;"><button class="btn-cancel" onclick="closeModal()">Annuler</button> <button class="btn-save" onclick="menuConfirmOptions()">Ajouter</button></div>';
-    openModal('Personnaliser - ' + p.nom, h);
-}
-
-function menuConfirmOptions() {
-    var interdits = Array.from(document.querySelectorAll('.menu-interdit-check:checked')).map(cb => cb.value);
-    var epice = document.querySelector('input[name="menu-epice"]:checked')?.value || 'Normal';
-    var sel = document.querySelector('input[name="menu-sel"]:checked')?.value || 'Normal';
-    var p = menuProducts.find(x => x.id === menuCurrentProductId);
-    if (!p) { closeModal(); return; }
-    var existing = menuCart.find(x => x.id === p.id);
-    if (existing) {
-        if (p.stock !== undefined && existing.quantite >= p.stock) { alert('Stock insuffisant'); closeModal(); return; }
-        existing.quantite++;
-    } else {
-        var price = (p.prixPromo && p.prixPromo > 0) ? p.prixPromo : p.prixVente;
-        menuCart.push({ id: p.id, nom: p.nom, prixUnitaire: price, quantite: 1, sauces: [], interdits: interdits, epice: epice, sel: sel });
-    }
-    closeModal();
-    renderMenuTactile();
-}
-
-async function menuValiderCommande() {
-    if (menuCart.length === 0) { alert('⚠️ Panier vide.'); return; }
-    var total = menuCalcTotal();
-    if (!confirm('📋 Confirmer la commande ?\nTable ' + menuTableNum + '\nTotal: ' + total.toFixed(2) + ' MAD')) return;
-    try {
-        await db.collection('commandes').add({
-            items: JSON.parse(JSON.stringify(menuCart)),
-            total: total,
-            table: menuTableNum,
-            clientName: 'Table ' + menuTableNum,
-            statut: 'en_attente',
-            source: 'menu_tactile',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        alert('✅ Commande envoyée !');
-        menuCart = [];
-        renderMenuTactile();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch(e) { alert('❌ Erreur: ' + e.message); }
-}
-
-console.log('🍽️ Menu tactile avec ingrédients réels catégorisés prêt');
+console.log('☕ Alma Coffee Shop - Client JS prêt');
