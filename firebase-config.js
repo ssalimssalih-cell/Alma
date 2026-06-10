@@ -1,12 +1,13 @@
-// ==================== FIREBASE CONFIGURATION ====================
-// Configuration pour Chicken Way (fonctionnelle)
+// ==================== FIREBASE CONFIGURATION - ALMA COFFEE SHOP ====================
+// ⚠️ REMPLACEZ PAR VOTRE PROPRE CONFIGURATION (créée sur Firebase Console)
+
 const firebaseConfig = {
-    apiKey: "AIzaSyDBtroF6W2tgAmJeGwtSCjNGeYcG77IfsU",
-    authDomain: "chickenway2026.firebaseapp.com",
-    projectId: "chickenway2026",
-    storageBucket: "chickenway2026.firebasestorage.app",
-    messagingSenderId: "734739564037",
-    appId: "1:734739564037:web:649d31ff5d5b561ae93e6c"
+    apiKey: "VOTRE_API_KEY_ICI",
+    authDomain: "alma-coffee-shop.firebaseapp.com",
+    projectId: "alma-coffee-shop",
+    storageBucket: "alma-coffee-shop.firebasestorage.app",
+    messagingSenderId: "VOTRE_MESSAGING_SENDER_ID",
+    appId: "VOTRE_APP_ID"
 };
 
 // Initialisation Firebase
@@ -20,4 +21,4 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-console.log('🔥 Firebase OK - Projet:', firebaseConfig.projectId);
+console.log('☕ Alma Coffee Shop - Firebase OK');
