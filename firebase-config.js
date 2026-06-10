@@ -9,7 +9,7 @@ const firebaseConfig = {
     appId: "1:267294965703:web:54581b103c1c5b5c16a3e2"
 };
 
-// Initialisation Firebase (version compat pour les scripts existants)
+// Initialisation Firebase (version compat)
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
