@@ -1,3 +1,7 @@
+// ==================== AUTH.JS - ALMA COFFEE SHOP ====================
+var currentUser = null;
+var currentUserData = null;
+
 function handleLogin(event) {
     event.preventDefault();
     var email = document.getElementById('loginEmail').value.trim();
@@ -13,7 +17,6 @@ function handleLogin(event) {
             var userData = doc.data();
             if (userData.authorized !== 'yes') { auth.signOut(); showLoginError('Compte en attente de validation'); return; }
             window.currentUserData = { uid: doc.id, userData: userData };
-            localStorage.setItem('currentUser', JSON.stringify(window.currentUserData));
             await CacheDB.set('users', doc.id, window.currentUserData);
             if (userData.role === 'client') showClientPage(); else showDashboard();
         })
@@ -54,13 +57,15 @@ function handleRegister(event) {
         })
         .catch(function(error) {
             btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Créer mon compte';
-            var msg = 'Erreur'; if (error.code === 'auth/email-already-in-use') msg = 'Cet email est déjà utilisé'; else if (error.code === 'auth/weak-password') msg = 'Mot de passe trop faible'; else if (error.code === 'auth/operation-not-allowed') msg = 'Inscription désactivée';
+            var msg = 'Erreur'; if (error.code === 'auth/email-already-in-use') msg = 'Cet email est déjà utilisé'; else if (error.code === 'auth/weak-password') msg = 'Mot de passe trop faible';
             msgBox.style.background = '#fee2e2'; msgBox.style.color = '#991b1b'; msgBox.style.border = '2px solid #fecaca'; msgBox.innerHTML = msg; msgBox.style.display = 'block';
         });
     return false;
 }
 
-function handleLogout() { auth.signOut().then(function() { localStorage.removeItem('currentUser'); window.currentUser = null; window.currentUserData = null; showAuthPage(); }); }
+function handleLogout() { auth.signOut().then(function() { window.currentUser = null; window.currentUserData = null; showAuthPage(); }); }
 function showLogin() { document.getElementById('loginContainer').classList.remove('hidden'); document.getElementById('registerContainer').classList.add('hidden'); hideLoginError(); }
 function showRegister() { document.getElementById('loginContainer').classList.add('hidden'); document.getElementById('registerContainer').classList.remove('hidden'); hideLoginError(); }
-console.log('Auth JS avec cache OK');
+function showAuthPage() { document.getElementById('authPage').classList.remove('hidden'); document.getElementById('dashboardPage').classList.add('hidden'); document.getElementById('clientPage').classList.add('hidden'); }
+
+console.log('☕ Alma Coffee Shop - Auth JS OK');
