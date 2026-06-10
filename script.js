@@ -133,7 +133,7 @@ function buildMenu() {
     var items = [];
     if (window.currentUserData && window.currentUserData.userData.role === 'admin') {
         items = [
-            {p:'dashboard',i:'fa-th-large',l:'Dashboard'},
+            {p:'dashboard',i:'fa-chart-line',l:'Dashboard'},
             {p:'pos',i:'fa-cash-register',l:'POS'},
             {p:'commandes',i:'fa-shopping-basket',l:'Commandes en ligne'},
             {p:'categories',i:'fa-layer-group',l:'Catégories'},
@@ -146,7 +146,8 @@ function buildMenu() {
             {p:'statistiques',i:'fa-chart-bar',l:'Statistiques'},
             {p:'options',i:'fa-cog',l:'Options'}
         ];
-        document.getElementById('sidebarRole').textContent = 'Admin';
+        var roleSpan = document.getElementById('sidebarRole');
+        if (roleSpan) roleSpan.textContent = 'Admin';
     } else if (window.currentUserData && window.currentUserData.userData.role === 'caissier') {
         items = [
             {p:'pos',i:'fa-cash-register',l:'POS'},
@@ -154,7 +155,8 @@ function buildMenu() {
             {p:'ventes',i:'fa-shopping-cart',l:'Ventes'},
             {p:'credits',i:'fa-credit-card',l:'Crédits'}
         ];
-        document.getElementById('sidebarRole').textContent = 'Caissier';
+        var roleSpan = document.getElementById('sidebarRole');
+        if (roleSpan) roleSpan.textContent = 'Caissier';
     }
     items.forEach(function(item) { 
         var li = document.createElement('li'); li.className = 'nav-item'; li.onclick = function() { navigateTo(item.p); }; li.innerHTML = '<i class="fas ' + item.i + '"></i> ' + item.l; menu.appendChild(li); 
@@ -167,7 +169,7 @@ function navigateTo(page) {
     var pages = ['dashboard','pos','commandes','categories','products','clients','fournisseurs','ventes','credits','depenses','statistiques','options'];
     var index = pages.indexOf(page); if (index >= 0 && items[index]) items[index].classList.add('active');
     var titles = { dashboard:'Dashboard',pos:'POS',commandes:'Commandes en ligne',categories:'Catégories',products:'Produits',clients:'Clients',fournisseurs:'Fournisseurs',ventes:'Ventes',credits:'Crédits',depenses:'Dépenses',statistiques:'Statistiques',options:'Options' };
-    var icons = { dashboard:'fa-th-large',pos:'fa-cash-register',commandes:'fa-shopping-basket',categories:'fa-layer-group',products:'fa-coffee',clients:'fa-users',fournisseurs:'fa-truck',ventes:'fa-shopping-cart',credits:'fa-credit-card',depenses:'fa-money-bill-wave',statistiques:'fa-chart-bar',options:'fa-cog' };
+    var icons = { dashboard:'fa-chart-line',pos:'fa-cash-register',commandes:'fa-shopping-basket',categories:'fa-layer-group',products:'fa-coffee',clients:'fa-users',fournisseurs:'fa-truck',ventes:'fa-shopping-cart',credits:'fa-credit-card',depenses:'fa-money-bill-wave',statistiques:'fa-chart-bar',options:'fa-cog' };
     document.getElementById('pageTitle').textContent = titles[page] || '';
     var hi = document.querySelector('.header-title i'); if (hi && icons[page]) hi.className = 'fas ' + icons[page];
     var content = document.getElementById('dynamicContent'); if (!content) return;
@@ -189,7 +191,7 @@ function navigateTo(page) {
 function updateSidebarUserInfo() { 
     var el = document.getElementById('sidebarUserInfo'); 
     if (el && window.currentUserData) {
-        el.innerHTML = '<i class="fas fa-user-circle"></i> ' + window.currentUserData.userData.prenom + ' ' + window.currentUserData.userData.nom + ' <small style="color:#f39c12;">(' + window.currentUserData.userData.role + ')</small>';
+        el.innerHTML = '<i class="fas fa-user-circle"></i> ' + window.currentUserData.userData.prenom + ' ' + window.currentUserData.userData.nom + ' <small style="color:#A67C52;">(' + window.currentUserData.userData.role + ')</small>';
     } 
 }
 
