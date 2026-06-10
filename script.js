@@ -1,3 +1,4 @@
+// ==================== SCRIPT.JS - ALMA COFFEE SHOP ====================
 var currentUser = null;
 var currentUserData = null;
 
@@ -24,7 +25,7 @@ window.addEventListener('load', function() {
 });
 
 async function initApp() {
-    console.log('Chicken Way Started');
+    console.log('☕ Alma Coffee Shop Started');
 
     if (window._menuTactileTable) {
         var tableParam = window._menuTactileTable;
@@ -88,7 +89,6 @@ async function initApp() {
                         return;
                     }
                     window.currentUserData = userData;
-                    localStorage.setItem('currentUser', JSON.stringify(window.currentUserData));
                     if (userData.userData.role === 'client') showClientPage();
                     else showDashboard();
                 } catch(err) {
@@ -98,7 +98,6 @@ async function initApp() {
                 }
             } else {
                 window.currentUserData = null;
-                localStorage.removeItem('currentUser');
                 showAuthPage();
             }
         });
@@ -107,23 +106,9 @@ async function initApp() {
     showLogin();
 }
 
-function toggleSidebar() { 
-    var s = document.getElementById('sidebar'), o = document.getElementById('sidebarOverlay'); 
-    if (s) s.classList.toggle('open'); 
-    if (o) o.classList.toggle('active'); 
-}
-
-function toggleClientSidebar() { 
-    var s = document.getElementById('clientSidebar'), o = document.getElementById('clientSidebarOverlay'); 
-    if (s) s.classList.toggle('open'); 
-    if (o) o.classList.toggle('active'); 
-}
-
-function showAuthPage() { 
-    document.getElementById('authPage').classList.remove('hidden'); 
-    document.getElementById('dashboardPage').classList.add('hidden'); 
-    document.getElementById('clientPage').classList.add('hidden'); 
-}
+function toggleSidebar() { var s = document.getElementById('sidebar'), o = document.getElementById('sidebarOverlay'); if (s) s.classList.toggle('open'); if (o) o.classList.toggle('active'); }
+function toggleClientSidebar() { var s = document.getElementById('clientSidebar'), o = document.getElementById('clientSidebarOverlay'); if (s) s.classList.toggle('open'); if (o) o.classList.toggle('active'); }
+function showAuthPage() { document.getElementById('authPage').classList.remove('hidden'); document.getElementById('dashboardPage').classList.add('hidden'); document.getElementById('clientPage').classList.add('hidden'); }
 
 function showDashboard() {
     document.getElementById('authPage').classList.add('hidden'); 
@@ -144,18 +129,15 @@ function showClientPage() {
 }
 
 function buildMenu() {
-    var menu = document.getElementById('navMenu'); 
-    if (!menu) return; 
-    menu.innerHTML = ''; 
+    var menu = document.getElementById('navMenu'); if (!menu) return; menu.innerHTML = ''; 
     var items = [];
-    
     if (window.currentUserData && window.currentUserData.userData.role === 'admin') {
         items = [
             {p:'dashboard',i:'fa-th-large',l:'Dashboard'},
             {p:'pos',i:'fa-cash-register',l:'POS'},
             {p:'commandes',i:'fa-shopping-basket',l:'Commandes en ligne'},
             {p:'categories',i:'fa-layer-group',l:'Catégories'},
-            {p:'products',i:'fa-utensils',l:'Produits'},
+            {p:'products',i:'fa-coffee',l:'Produits'},
             {p:'clients',i:'fa-users',l:'Clients'},
             {p:'fournisseurs',i:'fa-truck',l:'Fournisseurs'},
             {p:'ventes',i:'fa-shopping-cart',l:'Ventes'},
@@ -174,50 +156,21 @@ function buildMenu() {
         ];
         document.getElementById('sidebarRole').textContent = 'Caissier';
     }
-    
     items.forEach(function(item) { 
-        var li = document.createElement('li'); 
-        li.className = 'nav-item'; 
-        li.onclick = function() { navigateTo(item.p); }; 
-        li.innerHTML = '<i class="fas ' + item.i + '"></i> ' + item.l; 
-        menu.appendChild(li); 
+        var li = document.createElement('li'); li.className = 'nav-item'; li.onclick = function() { navigateTo(item.p); }; li.innerHTML = '<i class="fas ' + item.i + '"></i> ' + item.l; menu.appendChild(li); 
     });
 }
 
 function navigateTo(page) {
-    if (!window.currentUserData || window.currentUserData.userData.authorized !== 'yes') { 
-        auth.signOut(); 
-        showAuthPage(); 
-        return; 
-    }
-    
-    var items = document.querySelectorAll('#navMenu .nav-item'); 
-    items.forEach(function(item) { item.classList.remove('active'); });
-    
+    if (!window.currentUserData || window.currentUserData.userData.authorized !== 'yes') { auth.signOut(); showAuthPage(); return; }
+    var items = document.querySelectorAll('#navMenu .nav-item'); items.forEach(function(item) { item.classList.remove('active'); });
     var pages = ['dashboard','pos','commandes','categories','products','clients','fournisseurs','ventes','credits','depenses','statistiques','options'];
-    var index = pages.indexOf(page); 
-    if (index >= 0 && items[index]) items[index].classList.add('active');
-    
-    var titles = {
-        dashboard:'Dashboard',pos:'POS',commandes:'Commandes en ligne',
-        categories:'Catégories',products:'Produits',clients:'Clients',
-        fournisseurs:'Fournisseurs',ventes:'Ventes',credits:'Crédits',
-        depenses:'Dépenses',statistiques:'Statistiques',options:'Options'
-    };
-    var icons = {
-        dashboard:'fa-th-large',pos:'fa-cash-register',commandes:'fa-shopping-basket',
-        categories:'fa-layer-group',products:'fa-utensils',clients:'fa-users',
-        fournisseurs:'fa-truck',ventes:'fa-shopping-cart',credits:'fa-credit-card',
-        depenses:'fa-money-bill-wave',statistiques:'fa-chart-bar',options:'fa-cog'
-    };
-    
+    var index = pages.indexOf(page); if (index >= 0 && items[index]) items[index].classList.add('active');
+    var titles = { dashboard:'Dashboard',pos:'POS',commandes:'Commandes en ligne',categories:'Catégories',products:'Produits',clients:'Clients',fournisseurs:'Fournisseurs',ventes:'Ventes',credits:'Crédits',depenses:'Dépenses',statistiques:'Statistiques',options:'Options' };
+    var icons = { dashboard:'fa-th-large',pos:'fa-cash-register',commandes:'fa-shopping-basket',categories:'fa-layer-group',products:'fa-coffee',clients:'fa-users',fournisseurs:'fa-truck',ventes:'fa-shopping-cart',credits:'fa-credit-card',depenses:'fa-money-bill-wave',statistiques:'fa-chart-bar',options:'fa-cog' };
     document.getElementById('pageTitle').textContent = titles[page] || '';
-    var hi = document.querySelector('.header-title i'); 
-    if (hi && icons[page]) hi.className = 'fas ' + icons[page];
-    
-    var content = document.getElementById('dynamicContent'); 
-    if (!content) return;
-    
+    var hi = document.querySelector('.header-title i'); if (hi && icons[page]) hi.className = 'fas ' + icons[page];
+    var content = document.getElementById('dynamicContent'); if (!content) return;
     if (page === 'pos' && typeof loadPosPage === 'function') loadPosPage(content);
     else if (page === 'commandes' && typeof loadCommandesPage === 'function') loadCommandesPage(content);
     else if (page === 'categories' && typeof loadCategoriesPage === 'function') loadCategoriesPage(content);
@@ -236,20 +189,15 @@ function navigateTo(page) {
 function updateSidebarUserInfo() { 
     var el = document.getElementById('sidebarUserInfo'); 
     if (el && window.currentUserData) {
-        el.innerHTML = '<i class="fas fa-user-circle"></i> ' + 
-            window.currentUserData.userData.prenom + ' ' + 
-            window.currentUserData.userData.nom + 
-            ' <small style="color:#f39c12;">(' + window.currentUserData.userData.role + ')</small>';
+        el.innerHTML = '<i class="fas fa-user-circle"></i> ' + window.currentUserData.userData.prenom + ' ' + window.currentUserData.userData.nom + ' <small style="color:#f39c12;">(' + window.currentUserData.userData.role + ')</small>';
     } 
 }
 
 function updateClientSidebarInfo() { 
     var el = document.getElementById('clientSidebarInfo'); 
     if (el && window.currentUserData) {
-        el.innerHTML = '<i class="fas fa-user-circle"></i> ' + 
-            window.currentUserData.userData.prenom + ' ' + 
-            window.currentUserData.userData.nom;
+        el.innerHTML = '<i class="fas fa-user-circle"></i> ' + window.currentUserData.userData.prenom + ' ' + window.currentUserData.userData.nom;
     } 
 }
 
-console.log('Script JS avec cache et Statistiques OK');
+console.log('☕ Alma Coffee Shop - Script principal OK');
