@@ -1,9 +1,9 @@
-// ==================== POS.JS COMPLET (avec compteur commandes en ligne fiable) ====================
+// ==================== POS.JS - ALMA COFFEE SHOP (PARTIE 1) ====================
 var posCart = [], posStep = 1, posCategoriesList = [], posProductsList = [], posSelectedCategory = 'all';
 var posCurrentClient = null, posCurrentTable = '', posPaymentMethod = 'espece', posAmountGiven = 0, posDiscountMAD = 0;
 var posAllClients = [], posFilteredClients = [], posCurrentProductId = null;
 
-// Commandes tables et en ligne
+// Commandes tables
 var posCommandesTables = [];
 var posCommandesTablesCount = 0;
 var posCommandesEnLigneCount = 0;
@@ -178,19 +178,17 @@ async function posChargerCommandesTables() {
     }
 }
 
-// ========== CHARGEMENT DES COMMANDES EN LIGNE (avec fallback si pas d'index) ==========
+// ========== CHARGEMENT DES COMMANDES EN LIGNE ==========
 async function posChargerCommandesEnLigneCount() {
     try {
-        // Tentative avec requête filtrée (nécessite un index composite)
         var snap = await db.collection('commandes')
             .where('statut', '==', 'en_attente')
             .where('source', '==', 'client')
             .get();
         posCommandesEnLigneCount = snap.size;
-        console.log('✅ Commandes en ligne comptées via index :', posCommandesEnLigneCount);
+        console.log('☕ Commandes en ligne :', posCommandesEnLigneCount);
     } catch(e) {
-        console.warn('Requête avec index impossible, fallback : chargement de toutes les commandes', e);
-        // Fallback : charger toutes les commandes et filtrer côté client
+        console.warn('Fallback chargement commandes en ligne', e);
         try {
             var allSnap = await db.collection('commandes').get();
             let count = 0;
@@ -199,9 +197,9 @@ async function posChargerCommandesEnLigneCount() {
                 if (data.statut === 'en_attente' && data.source === 'client') count++;
             });
             posCommandesEnLigneCount = count;
-            console.log('✅ Commandes en ligne comptées via fallback :', posCommandesEnLigneCount);
+            console.log('☕ Commandes en ligne (fallback) :', posCommandesEnLigneCount);
         } catch(err) {
-            console.error('Erreur fallback commandes en ligne', err);
+            console.error('Erreur fallback', err);
             posCommandesEnLigneCount = 0;
         }
     }
@@ -295,9 +293,9 @@ function posAfficherCommandesTables() {
             ${renderSortableHeader('Total', 'total')}
             ${renderSortableHeader('Date/Heure', 'createdAt')}
             <th>Actions</th>
-        </table></thead>
+        </tr></thead>
         <tbody>`;
-
+    // ==================== POS.JS - ALMA COFFEE SHOP (PARTIE 2) ====================
     if (filteredData.length === 0) {
         html += '<tr><td colspan="6" style="text-align:center; padding:30px;">Aucune commande correspondante</td></tr>';
     } else {
@@ -319,7 +317,7 @@ function posAfficherCommandesTables() {
             html += '<td><strong>🍽️ ' + escapeHtml(table) + '</strong></td>';
             html += '<td>' + produits + '</td>';
             html += '<td><small>' + options + '</small></td>';
-            html += '<td><strong style="color:#e67e22;">' + cmd.total.toFixed(2) + ' MAD</strong></td>';
+            html += '<td><strong style="color:#A67C52;">' + cmd.total.toFixed(2) + ' MAD</strong></td>';
             html += '<td><small>' + dateHeure + '</small></td>';
             html += '<td style="white-space:nowrap;">' +
                 '<button class="btn-add" style="padding:4px 8px;font-size:0.7rem;margin-right:4px;" onclick="posChargerCommandeTable(\'' + cmd.id + '\')"><i class="fas fa-check"></i> Accepter</button>' +
@@ -396,6 +394,7 @@ function posSearchClient(query) {
         renderClientDropdown();
     }
 }
+
 function renderClientDropdown() {
     var d = document.getElementById('posClientDropdown');
     if(!d) return;
@@ -410,6 +409,7 @@ function renderClientDropdown() {
     d.innerHTML = h;
     d.style.display = 'block';
 }
+
 function posSelectClientFromDropdown(cid, cn) {
     posCurrentClient = {id: cid, name: cn};
     posCurrentTable = '';
@@ -421,11 +421,13 @@ function posSelectClientFromDropdown(cid, cn) {
     if(d) d.style.display = 'none';
     updatePaymentButtons();
 }
+
 document.addEventListener('click', function(e) {
     var d = document.getElementById('posClientDropdown'),
         s = document.getElementById('posClientSearchInput');
     if(d && s && !s.contains(e.target) && !d.contains(e.target)) d.style.display = 'none';
 });
+
 function updatePaymentButtons() {
     setTimeout(function() {
         var cb = document.getElementById('posCreditBtn'),
@@ -443,6 +445,7 @@ function updatePaymentButtons() {
         }
     }, 300);
 }
+
 function posSetTable(v) {
     posCurrentTable = v.trim();
     if(posCurrentTable) {
@@ -589,6 +592,7 @@ function posConfirmOptions() {
     }
     closeModal(); renderPOS();
 }
+// ==================== POS.JS - ALMA COFFEE SHOP (PARTIE 3) ====================
 
 function renderPOS() {
     var c = document.getElementById('dynamicContent'); if (!c) return;
@@ -628,7 +632,7 @@ function renderPOS() {
             if (p.stock !== undefined) { if (p.stock <= 0) { sc = 'pos-out-of-stock'; stt = ' (Rupture)'; } else if (p.stock <= 5) { stt = ' (' + p.stock + ' rest.)'; } }
             h += '<div class="pos-product-card ' + sc + '" onclick="posAddToCartOrOpenOptions(\'' + p.id + '\')">';
             if (p.imageBase64) h += '<div class="pos-product-img"><img src="' + escapeHtml(p.imageBase64) + '" alt=""></div>';
-            else h += '<div class="pos-product-img pos-product-placeholder"><i class="fas fa-utensils"></i></div>';
+            else h += '<div class="pos-product-img pos-product-placeholder"><i class="fas fa-coffee"></i></div>';
             h += '<div class="pos-product-info"><span class="pos-product-name">' + escapeHtml(p.nom) + stt + '</span><span class="pos-product-price">';
             if (hp) h += '<span class="pos-old-price">' + p.prixVente.toFixed(2) + '</span> <span class="pos-promo-price">' + pr.toFixed(2) + ' MAD</span>';
             else h += pr.toFixed(2) + ' MAD';
@@ -826,4 +830,4 @@ async function posFinalizeSale() {
     } catch(e) { alert('Erreur: ' + e.message); }
 }
 
-console.log('POS JS complet – compteur commandes en ligne (fallback inclus)');
+console.log('☕ Alma Coffee Shop - POS JS prêt');
