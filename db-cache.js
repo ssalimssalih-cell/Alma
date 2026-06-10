@@ -1,6 +1,6 @@
 // ==================== INDEXEDDB CACHE + PENDING OPERATIONS ====================
-const DB_NAME = 'ChickenWayDB';
-const DB_VERSION = 2;
+const DB_NAME = 'AlmaCoffeeDB';
+const DB_VERSION = 1;
 const CACHE_STORE = 'firestore_cache';
 const PENDING_STORE = 'pending_operations';
 
@@ -33,7 +33,6 @@ function openDB() {
     });
 }
 
-// -------------------- CACHE (lecture seule) --------------------
 async function cacheSet(collection, docId, data) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -100,7 +99,6 @@ async function cacheClear() {
     });
 }
 
-// -------------------- FILE D'ATTENTE (offline writes) --------------------
 let isProcessing = false;
 
 function addPendingOperation(operation) {
@@ -211,7 +209,7 @@ async function writeDocument(collection, docId, data, type = 'set') {
                 return docId;
             }
         } catch (err) {
-            console.warn('Erreur réseau, mise en file d’attente', err);
+            console.warn('Erreur réseau, mise en file d\'attente', err);
             await addPendingOperation({ type, collection, docId, data });
             return null;
         }
@@ -232,3 +230,5 @@ window.CacheDB = {
     addPendingOperation,
     isOnline: () => navigator.onLine
 };
+
+console.log('☕ Alma Coffee Shop - Cache DB OK');
