@@ -1,19 +1,11 @@
-// ==================== GESTION DU STOCK, DES DÉPENSES ET DU PERSONNEL ====================
-
-// Période globale (commune aux dépenses et au personnel)
+// ==================== DEPENSES.JS - ALMA COFFEE SHOP ====================
 var globalPeriod = 'all';
-
-// Variables pour les filtres dépenses
 var depensesSearch = '';
 var depensesCategoryFilter = '';
 
-// ----- Stock : catégories -----
 var stockCategories = [
-    "Viande", "Poulet", "Poisson", "Légumes", "Fruits",
-    "Produits laitiers", "Épices", "Huile", "Farine", "Sucre",
-    "Emballages", "Sacs", "Boîtes", "Gobelets", "Serviettes",
-    "Sauces",
-    "Autre"
+    "Café", "Thé", "Chocolat", "Lait", "Sucre", "Épices", "Pâtisserie", "Fruits",
+    "Emballages", "Sacs", "Boîtes", "Gobelets", "Serviettes", "Sirop", "Sauces", "Autre"
 ];
 
 var allStockData = [];
@@ -26,11 +18,9 @@ var personnelSearchQuery = '';
 var personnelCurrentPage = 1;
 var personnelItemsPerPage = 15;
 
-// ==================== PAGE PRINCIPALE ====================
 function loadDepensesPage(c) {
     var html = '';
 
-    // ---------- FILTRE DE DATE GLOBAL ----------
     html += '<div class="content-card" style="margin-bottom:20px; padding:15px;">';
     html += '<div style="display:flex; align-items:center; gap:15px;">';
     html += '<strong><i class="fas fa-calendar-alt"></i> Période :</strong>';
@@ -40,7 +30,7 @@ function loadDepensesPage(c) {
     html += '</div>';
     html += '</div>';
 
-    // ---------- SECTION STOCK ----------
+    // SECTION STOCK
     html += '<div class="content-card" style="margin-bottom:30px;">';
     html += '<div class="card-header">';
     html += '<h3><i class="fas fa-boxes"></i> Stock (matières premières, emballages…) <span id="stockTotalDisplay" style="font-size:0.9rem;color:#16a34a;"></span></h3>';
@@ -53,11 +43,11 @@ function loadDepensesPage(c) {
     html += '<div class="table-container"><table class="data-table" id="stockTable" style="font-size:0.7rem;">';
     html += '<thead><tr>';
     html += '<th>Nom</th><th>Catégorie</th><th>Prix achat (MAD)</th><th>Quantité</th><th>Unité</th><th>Qté base</th><th>Actions</th>';
-    html += '</tr></thead><tbody></tbody></table></div>';
+    html += '</thead><tbody></tbody></table></div>';
     html += '<div id="stockPagination"></div>';
     html += '</div>';
 
-    // ---------- SECTION DÉPENSES ----------
+    // SECTION DÉPENSES
     var catOptions = '<option value="">Toutes les catégories</option>';
     Object.keys(depenseCategories).forEach(function(cat) {
         catOptions += '<option value="' + cat + '">' + cat + '</option>';
@@ -75,11 +65,11 @@ function loadDepensesPage(c) {
     html += '</div>';
     html += '<div class="table-container"><table class="data-table" id="depensesTable" style="font-size:0.65rem;"><thead><tr>';
     html += '<th>ID</th><th>Titre</th><th>Catégorie</th><th>Sous‑catégorie</th><th>Montant</th><th>Description</th><th>Date</th><th>Actions</th>';
-    html += '</tr></thead><tbody></tbody></table></div>';
+    html += '</thead><tbody></tbody></table></div>';
     html += '<div id="depensesPagination"></div>';
     html += '</div>';
 
-    // ---------- SECTION PERSONNEL ----------
+    // SECTION PERSONNEL
     html += '<div class="content-card">';
     html += '<div class="card-header">';
     html += '<h3><i class="fas fa-users"></i> Personnel <span id="personnelTotalDisplay" style="font-size:0.9rem;color:#16a34a;"></span></h3>';
@@ -92,13 +82,11 @@ function loadDepensesPage(c) {
     html += '<div class="table-container"><table class="data-table" id="personnelTable" style="font-size:0.7rem;">';
     html += '<thead><tr>';
     html += '<th>Nom</th><th>Rôle</th><th>Salaire (MAD)</th><th>Horaire</th><th>Téléphone</th><th>Date d\'embauche</th><th>Actions</th>';
-    html += '</tr></thead><tbody></tbody></table></div>';
+    html += '</thead><tbody></tbody></tr></div>';
     html += '<div id="personnelPagination"></div>';
     html += '</div>';
 
     c.innerHTML = html;
-
-    // Charger les trois sections
     loadStock();
     loadDepenses();
     loadPersonnel();
@@ -146,11 +134,11 @@ function renderStockTable() {
         var d = pageData[i];
         var qteBase = convertirQuantiteBase(d.quantite, d.unite);
         tb.innerHTML += '<tr>' +
-            '<td><strong>' + (d.nom||'') + '</strong></td>' +
-            '<td>' + (d.categorie||'-') + '</td>' +
+            '<td><strong>' + escapeHtml(d.nom||'') + '</strong></td>' +
+            '<td>' + escapeHtml(d.categorie||'-') + '</td>' +
             '<td>' + (d.prixAchat||0).toFixed(2) + '</td>' +
             '<td>' + (d.quantite||0) + '</td>' +
-            '<td>' + (d.unite||'') + '</td>' +
+            '<td>' + escapeHtml(d.unite||'') + '</td>' +
             '<td><small>' + qteBase + '</small></td>' +
             '<td><button class="btn-edit" onclick="editStock(\'' + d.id + '\')"><i class="fas fa-edit"></i></button> ' +
             '<button class="btn-delete" onclick="deleteStock(\'' + d.id + '\')"><i class="fas fa-trash"></i></button></td>' +
@@ -159,16 +147,15 @@ function renderStockTable() {
 
     var pagHTML = '';
     if (totalPages > 1) {
-        pagHTML += '<div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:15px; flex-wrap:wrap;">';
-        pagHTML += '<button onclick="stockCurrentPage = Math.max(1, stockCurrentPage-1); renderStockTable();" ' + (stockCurrentPage <= 1 ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px; background:white; cursor:pointer;">« Précédent</button>';
-        pagHTML += '<span style="font-weight:600;">Page ' + stockCurrentPage + ' / ' + totalPages + '</span>';
-        pagHTML += '<button onclick="stockCurrentPage = Math.min(totalPages, stockCurrentPage+1); renderStockTable();" ' + (stockCurrentPage >= totalPages ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px; background:white; cursor:pointer;">Suivant »</button>';
+        pagHTML += '<div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">';
+        pagHTML += '<button onclick="stockCurrentPage = Math.max(1, stockCurrentPage-1); renderStockTable();" ' + (stockCurrentPage <= 1 ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px;">« Précédent</button>';
+        pagHTML += '<span>Page ' + stockCurrentPage + ' / ' + totalPages + '</span>';
+        pagHTML += '<button onclick="stockCurrentPage = Math.min(totalPages, stockCurrentPage+1); renderStockTable();" ' + (stockCurrentPage >= totalPages ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px;">Suivant »</button>';
         pagHTML += '</div>';
     }
     document.getElementById('stockPagination').innerHTML = pagHTML;
 }
 
-// (Fonctions stock : openStockForm, saveStock, editStock, deleteStock, convertirQuantiteBase – inchangées)
 function openStockForm(data) {
     data = data || {};
     var selectedCategorie = data.categorie || '';
@@ -179,12 +166,12 @@ function openStockForm(data) {
     });
 
     var h = '';
-    h += '<div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="stockNom" value="' + (data.nom || '') + '" required></div>';
-    h += '<div class="form-group"><label>Catégorie</label><select id="stockCat" style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:8px;">' + catOptions + '</select></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="stockNom" value="' + escapeHtml(data.nom || '') + '" required></div>';
+    h += '<div class="form-group"><label>Catégorie</label><select id="stockCat">' + catOptions + '</select></div></div>';
     h += '<div class="form-row"><div class="form-group"><label>Prix d\'achat (MAD)</label><input type="number" id="stockPA" value="' + (data.prixAchat || 0) + '" step="0.01"></div>';
     h += '<div class="form-group"><label>Quantité</label><input type="number" id="stockQte" value="' + (data.quantite || 0) + '" step="any"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Unité</label><select id="stockUnite" style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:8px;">';
-    var unites = ['kg', 'g', 'L', 'mL', 'pièce', 'unité', 'sac', 'carton'];
+    h += '<div class="form-row"><div class="form-group"><label>Unité</label><select id="stockUnite">';
+    var unites = ['kg', 'g', 'L', 'mL', 'pièce', 'unité', 'sac', 'carton', 'bouteille', 'capsule'];
     unites.forEach(function(u) {
         h += '<option value="' + u + '" ' + (data.unite === u ? 'selected' : '') + '>' + u + '</option>';
     });
@@ -250,12 +237,12 @@ function convertirQuantiteBase(quantite, unite) {
     }
 }
 
-// ==================== DÉPENSES (sans son propre filtre période) ====================
+// ==================== DÉPENSES ====================
 var depenseCategories = {
-    "Boissons": ["Eau", "Sodas", "Jus", "Café", "Thé"],
+    "Boissons": ["Café", "Thé", "Chocolat", "Jus", "Eau", "Sodas"],
     "Personnel": ["Salaires", "Avances", "Primes", "CNSS"],
     "Charges du local": ["Loyer", "Eau", "Électricité", "Gaz", "Internet", "Téléphone"],
-    "Maintenance": ["Réparation cuisine", "Climatisation", "Plomberie", "Matériel"],
+    "Maintenance": ["Réparation machine café", "Climatisation", "Plomberie", "Matériel"],
     "Marketing": ["Publicité Facebook", "Publicité Instagram", "Flyers", "Promotions"],
     "Administratif": ["Comptable", "Logiciel POS", "Frais bancaires", "Assurances"],
     "Transport et livraison": ["Carburant", "Entretien véhicule", "Frais de livraison"],
@@ -274,7 +261,7 @@ async function loadDepenses() {
 }
 
 function applyDepensesFilters() {
-    var filtered = filterByPeriod(allDepensesData, globalPeriod);   // Utilise la période globale
+    var filtered = filterByPeriod(allDepensesData, globalPeriod);
     if (depensesSearch) filtered = filterBySearch(filtered, depensesSearch, ['titre','description','categorie','sousCategories']);
     if (depensesCategoryFilter) filtered = filtered.filter(function(d){ return d.categorie === depensesCategoryFilter; });
     window.filteredDepenses = filtered;
@@ -301,23 +288,31 @@ function renderDepensesTable() {
 
     for (var i = 0; i < pageData.length; i++) {
         var d = pageData[i];
-        var dateCreated = d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleDateString('fr-FR')+' '+new Date(d.createdAt.seconds*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '-';
+        var dateCreated = d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleString('fr-FR') : '-';
         var sousCategories = d.sousCategories ? d.sousCategories.join(', ') : '-';
-        tb.innerHTML += '<tr><td><small>'+(d.id||'').substring(0,6)+'</small></td><td><strong>'+(d.titre||d.description||'-')+'</strong></td><td><small>'+(d.categorie||'-')+'</small></td><td><small>'+sousCategories+'</small></td><td style="color:#ef4444;font-weight:700;">'+(d.montant||0).toFixed(2)+' MAD</td><td><small>'+(d.description||'-')+'</small></td><td><small>'+dateCreated+'</small></td><td><button class="btn-edit" onclick="editDepense(\''+d.id+'\')"><i class="fas fa-edit"></i></button> <button class="btn-delete" onclick="deleteDepense(\''+d.id+'\')"><i class="fas fa-trash"></i></button></td></tr>';
+        tb.innerHTML += '<tr>' +
+            '<td><small>'+(d.id||'').substring(0,6)+'</small></td>' +
+            '<td><strong>' + escapeHtml(d.titre||d.description||'-') + '</strong></td>' +
+            '<td><small>' + escapeHtml(d.categorie||'-') + '</small></td>' +
+            '<td><small>' + escapeHtml(sousCategories) + '</small></td>' +
+            '<td style="color:#ef4444;font-weight:700;">'+(d.montant||0).toFixed(2)+' MAD</td>' +
+            '<td><small>' + escapeHtml(d.description||'-') + '</small></td>' +
+            '<td><small>'+dateCreated+'</small></td>' +
+            '<td><button class="btn-edit" onclick="editDepense(\''+d.id+'\')"><i class="fas fa-edit"></i></button> <button class="btn-delete" onclick="deleteDepense(\''+d.id+'\')"><i class="fas fa-trash"></i></button></td>' +
+            '</tr>';
     }
 
     var pagHTML = '';
     if (totalPages > 1) {
-        pagHTML += '<div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:15px; flex-wrap:wrap;">';
-        pagHTML += '<button onclick="changePage(\'depenses\', ' + (currentPages.depenses-1) + ')" ' + (currentPages.depenses <= 1 ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px; background:white; cursor:pointer;">« Précédent</button>';
-        pagHTML += '<span style="font-weight:600;">Page ' + currentPages.depenses + ' / ' + totalPages + '</span>';
-        pagHTML += '<button onclick="changePage(\'depenses\', ' + (currentPages.depenses+1) + ')" ' + (currentPages.depenses >= totalPages ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px; background:white; cursor:pointer;">Suivant »</button>';
+        pagHTML += '<div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">';
+        pagHTML += '<button onclick="changePage(\'depenses\', ' + (currentPages.depenses-1) + ')" ' + (currentPages.depenses <= 1 ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px;">« Précédent</button>';
+        pagHTML += '<span>Page ' + currentPages.depenses + ' / ' + totalPages + '</span>';
+        pagHTML += '<button onclick="changePage(\'depenses\', ' + (currentPages.depenses+1) + ')" ' + (currentPages.depenses >= totalPages ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px;">Suivant »</button>';
         pagHTML += '</div>';
     }
     document.getElementById('depensesPagination').innerHTML = pagHTML;
 }
 
-// (Les fonctions openDepenseForm, saveDepense, editDepense, deleteDepense restent identiques)
 function openDepenseForm(data) {
     data = data || {};
     var selectedCategorie = data.categorie || '';
@@ -330,12 +325,12 @@ function openDepenseForm(data) {
     });
 
     var h = '';
-    h += '<div class="form-row"><div class="form-group"><label>Titre *</label><input type="text" id="depTitre" value="' + (data.titre || '') + '" required></div><div class="form-group"><label>Montant *</label><input type="number" id="depMontant" value="' + (data.montant || 0) + '" step="0.01" required></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Catégorie</label><select id="depCategorie" onchange="updateDepSousCategories()" style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:8px;">' + catOptions + '</select></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Titre *</label><input type="text" id="depTitre" value="' + escapeHtml(data.titre || '') + '" required></div><div class="form-group"><label>Montant *</label><input type="number" id="depMontant" value="' + (data.montant || 0) + '" step="0.01" required></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Catégorie</label><select id="depCategorie" onchange="updateDepSousCategories()">' + catOptions + '</select></div></div>';
     h += '<div class="form-row"><div class="form-group" style="min-width:100%;"><label>Sous‑catégories</label><div id="depSousCategories" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;"></div></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Autre sous‑catégorie</label><input type="text" id="depAutreSousCat" placeholder="Ajouter une sous‑catégorie non listée" style="width:100%;"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Autre sous‑catégorie</label><input type="text" id="depAutreSousCat" placeholder="Ajouter une sous‑catégorie non listée"></div></div>';
     h += '<div class="form-row"><div class="form-group"><label>Date</label><input type="date" id="depDate" value="' + (data.date || new Date().toISOString().split('T')[0]) + '"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Description</label><textarea id="depDesc">' + (data.description || '') + '</textarea></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Description</label><textarea id="depDesc">' + escapeHtml(data.description || '') + '</textarea></div></div>';
     h += '<button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="saveDepense()">Enregistrer</button>';
 
     openModal(editingId ? 'Modifier Dépense' : 'Nouvelle Dépense', h);
@@ -416,7 +411,7 @@ function deleteDepense(id) {
     }
 }
 
-// ==================== PERSONNEL (avec filtre par période globale) ====================
+// ==================== PERSONNEL ====================
 async function loadPersonnel() {
     try {
         const snapshot = await db.collection('personnel').orderBy('nom').get();
@@ -428,7 +423,6 @@ async function loadPersonnel() {
     renderPersonnelTable();
 }
 
-// Fonction de filtrage par période pour le personnel (basée sur dateEmbauche)
 function filterPersonnelByPeriod(data, period) {
     if (!period || period === 'all') return data;
     var now = Date.now();
@@ -448,9 +442,7 @@ function renderPersonnelTable() {
     if (!tb) return;
 
     var data = allPersonnelData.slice();
-    // Appliquer filtre période globale
     data = filterPersonnelByPeriod(data, globalPeriod);
-    // Recherche
     if (personnelSearchQuery) {
         data = data.filter(function(d) {
             return (d.nom||'').toLowerCase().indexOf(personnelSearchQuery) !== -1 ||
@@ -476,11 +468,11 @@ function renderPersonnelTable() {
         var d = pageData[i];
         var dateEmbauche = d.dateEmbauche || '-';
         tb.innerHTML += '<tr>' +
-            '<td><strong>' + (d.nom||'') + '</strong></td>' +
-            '<td>' + (d.role||'-') + '</td>' +
+            '<td><strong>' + escapeHtml(d.nom||'') + '</strong></td>' +
+            '<td>' + escapeHtml(d.role||'-') + '</td>' +
             '<td>' + (d.salaire||0).toFixed(2) + '</td>' +
-            '<td>' + (d.horaire||'-') + '</td>' +
-            '<td>' + (d.telephone||'-') + '</td>' +
+            '<td>' + escapeHtml(d.horaire||'-') + '</td>' +
+            '<td>' + escapeHtml(d.telephone||'-') + '</td>' +
             '<td>' + dateEmbauche + '</td>' +
             '<td><button class="btn-edit" onclick="editPersonnel(\'' + d.id + '\')"><i class="fas fa-edit"></i></button> ' +
             '<button class="btn-delete" onclick="deletePersonnel(\'' + d.id + '\')"><i class="fas fa-trash"></i></button></td>' +
@@ -489,29 +481,28 @@ function renderPersonnelTable() {
 
     var pagHTML = '';
     if (totalPages > 1) {
-        pagHTML += '<div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-top:15px; flex-wrap:wrap;">';
-        pagHTML += '<button onclick="personnelCurrentPage = Math.max(1, personnelCurrentPage-1); renderPersonnelTable();" ' + (personnelCurrentPage <= 1 ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px; background:white; cursor:pointer;">« Précédent</button>';
-        pagHTML += '<span style="font-weight:600;">Page ' + personnelCurrentPage + ' / ' + totalPages + '</span>';
-        pagHTML += '<button onclick="personnelCurrentPage = Math.min(totalPages, personnelCurrentPage+1); renderPersonnelTable();" ' + (personnelCurrentPage >= totalPages ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px; background:white; cursor:pointer;">Suivant »</button>';
+        pagHTML += '<div style="display:flex; justify-content:center; gap:10px; margin-top:15px;">';
+        pagHTML += '<button onclick="personnelCurrentPage = Math.max(1, personnelCurrentPage-1); renderPersonnelTable();" ' + (personnelCurrentPage <= 1 ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px;">« Précédent</button>';
+        pagHTML += '<span>Page ' + personnelCurrentPage + ' / ' + totalPages + '</span>';
+        pagHTML += '<button onclick="personnelCurrentPage = Math.min(totalPages, personnelCurrentPage+1); renderPersonnelTable();" ' + (personnelCurrentPage >= totalPages ? 'disabled' : '') + ' style="padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px;">Suivant »</button>';
         pagHTML += '</div>';
     }
     document.getElementById('personnelPagination').innerHTML = pagHTML;
 }
 
-// (Fonctions personnel : openPersonnelForm, savePersonnel, editPersonnel, deletePersonnel – inchangées)
 function openPersonnelForm(data) {
     data = data || {};
     var h = '';
-    h += '<div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="persNom" value="' + (data.nom || '') + '" required></div>';
-    h += '<div class="form-group"><label>Rôle</label><select id="persRole" style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:8px;">';
-    var roles = ['Caissier', 'Cuisinier', 'Serveur', 'Livreur', 'Gérant'];
+    h += '<div class="form-row"><div class="form-group"><label>Nom *</label><input type="text" id="persNom" value="' + escapeHtml(data.nom || '') + '" required></div>';
+    h += '<div class="form-group"><label>Rôle</label><select id="persRole">';
+    var roles = ['Barista', 'Cuisinier', 'Serveur', 'Livreur', 'Gérant', 'Plongeur'];
     roles.forEach(function(r) {
         h += '<option value="' + r + '" ' + (data.role === r ? 'selected' : '') + '>' + r + '</option>';
     });
     h += '</select></div></div>';
     h += '<div class="form-row"><div class="form-group"><label>Salaire (MAD)</label><input type="number" id="persSalaire" value="' + (data.salaire || 0) + '" step="0.01"></div>';
-    h += '<div class="form-group"><label>Horaire de travail</label><input type="text" id="persHoraire" value="' + (data.horaire || '') + '" placeholder="ex: 08:00 - 16:00"></div></div>';
-    h += '<div class="form-row"><div class="form-group"><label>Téléphone</label><input type="text" id="persTel" value="' + (data.telephone || '') + '"></div>';
+    h += '<div class="form-group"><label>Horaire de travail</label><input type="text" id="persHoraire" value="' + escapeHtml(data.horaire || '') + '" placeholder="ex: 08:00 - 16:00"></div></div>';
+    h += '<div class="form-row"><div class="form-group"><label>Téléphone</label><input type="text" id="persTel" value="' + escapeHtml(data.telephone || '') + '"></div>';
     h += '<div class="form-group"><label>Date d\'embauche</label><input type="date" id="persDate" value="' + (data.dateEmbauche || '') + '"></div></div>';
     h += '<button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="savePersonnel()">Enregistrer</button>';
 
@@ -564,4 +555,14 @@ async function deletePersonnel(id) {
     }
 }
 
-console.log('Dépenses + Stock + Personnel avec filtre date global OK');
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+console.log('☕ Alma Coffee Shop - Dépenses JS prêt');
