@@ -1,4 +1,4 @@
-// ==================== STATISTIQUES PROFESSIONNELLES (ADMIN UNIQUEMENT) ====================
+// ==================== STATISTIQUES.JS - ALMA COFFEE SHOP ====================
 var statsCharts = {};
 
 function loadStatistiquesPage(c) {
@@ -10,7 +10,7 @@ function loadStatistiquesPage(c) {
     var html = `
     <div class="content-card" style="margin-bottom:15px;">
         <div class="card-header">
-            <h3><i class="fas fa-chart-bar"></i> Tableau de bord - Statistiques</h3>
+            <h3><i class="fas fa-chart-bar"></i> Tableau de bord - Statistiques Alma Coffee</h3>
             <div style="display:flex; gap:8px; align-items:center;">
                 <select id="statPeriodSelect" style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px;" onchange="loadStatistiques()">
                     <option value="1">Aujourd'hui</option>
@@ -25,7 +25,7 @@ function loadStatistiquesPage(c) {
         </div>
     </div>
     <div id="statsContent" style="text-align:center;padding:40px;">
-        <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#f39c12;"></i>
+        <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#A67C52;"></i>
         <p style="margin-top:10px;">Chargement des données...</p>
     </div>
     `;
@@ -42,9 +42,18 @@ function toDate(val) {
     return null;
 }
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
 async function loadStatistiques() {
-    // Détruire les anciens graphiques
-    Object.values(statsCharts).forEach(chart => chart.destroy());
+    Object.values(statsCharts).forEach(chart => { if (chart && chart.destroy) chart.destroy(); });
     statsCharts = {};
 
     var period = document.getElementById('statPeriodSelect')?.value || '7';
@@ -59,7 +68,6 @@ async function loadStatistiques() {
     if (!statsContent) return;
 
     try {
-        // Charger toutes les collections nécessaires en parallèle
         const [
             ventesSnap, commandesSnap, depensesSnap, clientsSnap, produitsSnap, categoriesSnap,
             stockSnap, personnelSnap, creditsSnap, settingsSnap
@@ -76,31 +84,11 @@ async function loadStatistiques() {
             db.collection('settings').doc('fidelite').get()
         ]);
 
-        // Filtrer par période (si nécessaire)
-        var ventes = [];
-        ventesSnap.forEach(d => {
-            var dd = d.data(); dd.id = d.id;
-            var docDate = toDate(dd.createdAt);
-            if (!startDate || (docDate && docDate >= startDate)) ventes.push(dd);
-        });
-        var commandes = [];
-        commandesSnap.forEach(d => {
-            var dd = d.data(); dd.id = d.id;
-            var docDate = toDate(dd.createdAt);
-            if (!startDate || (docDate && docDate >= startDate)) commandes.push(dd);
-        });
-        var depenses = [];
-        depensesSnap.forEach(d => {
-            var dd = d.data(); dd.id = d.id;
-            var docDate = toDate(dd.createdAt);
-            if (!startDate || (docDate && docDate >= startDate)) depenses.push(dd);
-        });
-        var credits = [];
-        creditsSnap.forEach(d => {
-            var dd = d.data(); dd.id = d.id;
-            var docDate = toDate(dd.createdAt);
-            if (!startDate || (docDate && docDate >= startDate)) credits.push(dd);
-        });
+        var ventes = [], commandes = [], depenses = [], credits = [];
+        ventesSnap.forEach(d => { var dd = d.data(); dd.id = d.id; var docDate = toDate(dd.createdAt); if (!startDate || (docDate && docDate >= startDate)) ventes.push(dd); });
+        commandesSnap.forEach(d => { var dd = d.data(); dd.id = d.id; var docDate = toDate(dd.createdAt); if (!startDate || (docDate && docDate >= startDate)) commandes.push(dd); });
+        depensesSnap.forEach(d => { var dd = d.data(); dd.id = d.id; var docDate = toDate(dd.createdAt); if (!startDate || (docDate && docDate >= startDate)) depenses.push(dd); });
+        creditsSnap.forEach(d => { var dd = d.data(); dd.id = d.id; var docDate = toDate(dd.createdAt); if (!startDate || (docDate && docDate >= startDate)) credits.push(dd); });
 
         var clients = []; clientsSnap.forEach(d => clients.push({ id: d.id, ...d.data() }));
         var produits = []; produitsSnap.forEach(d => produits.push({ id: d.id, ...d.data() }));
@@ -109,7 +97,6 @@ async function loadStatistiques() {
         var personnel = []; personnelSnap.forEach(d => personnel.push({ id: d.id, ...d.data() }));
         var fideliteSettings = settingsSnap.exists ? settingsSnap.data() : { active: true, pointsParVente: 1 };
 
-        // ---------- KPI PRINCIPAUX ----------
         var totalVentes = ventes.reduce((sum, v) => sum + (v.total || 0), 0);
         var totalProfit = ventes.reduce((sum, v) => {
             var profit = 0;
@@ -133,7 +120,6 @@ async function loadStatistiques() {
         var totalSalaires = personnel.reduce((sum, p) => sum + (p.salaire || 0), 0);
         var pointsTotal = fideliteSettings.active ? clients.reduce((sum, c) => sum + (c.pointsFidelite || 0), 0) : 0;
 
-        // ---------- TOP 5 PRODUITS ----------
         var productSales = {};
         ventes.forEach(v => {
             if (v.items) {
@@ -146,7 +132,6 @@ async function loadStatistiques() {
         });
         var topProduits = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-        // ---------- TOP 5 CATÉGORIES ----------
         var categoryCA = {};
         ventes.forEach(v => {
             if (v.items) {
@@ -159,7 +144,6 @@ async function loadStatistiques() {
         });
         var topCategories = Object.entries(categoryCA).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-        // ---------- MÉTHODES DE PAIEMENT ----------
         var paymentMethods = {};
         ventes.forEach(v => {
             var method = v.paymentMethod || 'espece';
@@ -167,7 +151,6 @@ async function loadStatistiques() {
             paymentMethods[method] += 1;
         });
 
-        // ---------- VENTES PAR JOUR (COURBE) ----------
         var dailySales = {};
         var daysToShow = period === 'all' ? 30 : parseInt(period);
         for (var i = daysToShow - 1; i >= 0; i--) {
@@ -179,13 +162,10 @@ async function loadStatistiques() {
             var vDate = toDate(v.createdAt);
             if (vDate) {
                 var dateKey = vDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-                if (dailySales[dateKey] !== undefined) {
-                    dailySales[dateKey] += v.total || 0;
-                }
+                if (dailySales[dateKey] !== undefined) dailySales[dateKey] += v.total || 0;
             }
         });
 
-        // ---------- DÉPENSES PAR CATÉGORIE ----------
         var depensesByCat = {};
         depenses.forEach(d => {
             var cat = d.categorie || 'Autre';
@@ -193,7 +173,6 @@ async function loadStatistiques() {
             depensesByCat[cat] += d.montant || 0;
         });
 
-        // ---------- CRÉDITS IMPAYÉS PAR CLIENT ----------
         var creditsImpayesParClient = {};
         credits.filter(c => !c.paid).forEach(c => {
             var client = c.clientName || 'Inconnu';
@@ -201,200 +180,81 @@ async function loadStatistiques() {
             creditsImpayesParClient[client] += (c.remainingAmount || c.total || 0);
         });
 
-        // ---------- CONSTRUCTION HTML ----------
         var statsHTML = '';
 
-        // Cartes KPI
         statsHTML += '<div class="stats-grid" style="margin-bottom:20px;">';
         statsHTML += buildStatCard('Chiffre d\'affaires', totalVentes.toFixed(2) + ' MAD', 'fa-money-bill-wave', '#dcfce7', '#16a34a');
         statsHTML += buildStatCard('Ventes', nbVentes.toString(), 'fa-shopping-cart', '#e0e7ff', '#4f46e5');
-        statsHTML += buildStatCard('Profit brut', totalProfit.toFixed(2) + ' MAD', 'fa-chart-line', '#fef3c7', '#f39c12');
+        statsHTML += buildStatCard('Profit brut', totalProfit.toFixed(2) + ' MAD', 'fa-chart-line', '#fef3c7', '#A67C52');
         statsHTML += buildStatCard('Panier moyen', panierMoyen.toFixed(2) + ' MAD', 'fa-shopping-basket', '#fce7f3', '#ec4899');
         statsHTML += buildStatCard('Dépenses', totalDepenses.toFixed(2) + ' MAD', 'fa-coins', '#fee2e2', '#ef4444');
         statsHTML += buildStatCard('Crédits impayés', totalCreditsImpayes.toFixed(2) + ' MAD', 'fa-credit-card', '#fef3c7', '#d97706');
         statsHTML += buildStatCard('Bénéfice net', (totalProfit - totalDepenses).toFixed(2) + ' MAD', 'fa-balance-scale', '#e0e7ff', '#4f46e5');
         statsHTML += buildStatCard('Clients', nbClients.toString(), 'fa-users', '#dcfce7', '#16a34a');
-        statsHTML += buildStatCard('Produits', nbProduits.toString(), 'fa-utensils', '#f0fdf4', '#16a34a');
-        statsHTML += buildStatCard('Taux conversion', tauxConversion.toFixed(1) + '%', 'fa-chart-pie', '#fef3c7', '#f39c12');
+        statsHTML += buildStatCard('Produits', nbProduits.toString(), 'fa-coffee', '#f0fdf4', '#16a34a');
+        statsHTML += buildStatCard('Taux conversion', tauxConversion.toFixed(1) + '%', 'fa-chart-pie', '#fef3c7', '#A67C52');
         statsHTML += buildStatCard('Valeur stock', valeurStock.toFixed(2) + ' MAD', 'fa-boxes', '#e0e7ff', '#4f46e5');
         statsHTML += buildStatCard('Salaires', totalSalaires.toFixed(2) + ' MAD', 'fa-user-tie', '#fee2e2', '#ef4444');
-        if (fideliteSettings.active) statsHTML += buildStatCard('Points fidélité', pointsTotal.toString(), 'fa-star', '#fef3c7', '#f39c12');
+        if (fideliteSettings.active) statsHTML += buildStatCard('Points fidélité', pointsTotal.toString(), 'fa-star', '#fef3c7', '#A67C52');
         statsHTML += '</div>';
 
-        // Graphiques (ligne 1)
         statsHTML += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">';
         statsHTML += '<div class="content-card"><h4 style="margin-bottom:10px;">📈 Évolution du CA</h4><canvas id="salesChart" style="max-height:250px;"></canvas></div>';
         statsHTML += '<div class="content-card"><h4 style="margin-bottom:10px;">💳 Méthodes de paiement</h4><canvas id="paymentChart" style="max-height:250px;"></canvas></div>';
         statsHTML += '</div>';
-
-        // Graphiques (ligne 2)
         statsHTML += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">';
         statsHTML += '<div class="content-card"><h4 style="margin-bottom:10px;">📊 Top 5 Catégories (CA)</h4><canvas id="categoryChart" style="max-height:250px;"></canvas></div>';
         statsHTML += '<div class="content-card"><h4 style="margin-bottom:10px;">💸 Dépenses par catégorie</h4><canvas id="depensesChart" style="max-height:250px;"></canvas></div>';
         statsHTML += '</div>';
-
-        // Tableaux et autres graphiques
         statsHTML += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">';
-        // Top 5 produits
         statsHTML += '<div class="content-card"><h4 style="margin-bottom:10px;">🏆 Top 5 Produits (quantité vendue)</h4><table class="data-table"><thead><tr><th>Produit</th><th>Qté vendue</th></tr></thead><tbody>';
-        if (topProduits.length > 0) {
-            topProduits.forEach(p => { statsHTML += `<tr><td>${p[0]}</td><td>${p[1]}</td></tr>`; });
-        } else {
-            statsHTML += '<tr><td colspan="2">Aucune vente</td></tr>';
-        }
-        statsHTML += '</tbody></table></div>';
-
-        // Crédits impayés par client
+        if (topProduits.length > 0) topProduits.forEach(p => { statsHTML += `<tr><td>${escapeHtml(p[0])}</td><td>${p[1]}</td></tr>`; });
+        else statsHTML += '<tr><td colspan="2">Aucune vente</td>\n            </tr>';
+        statsHTML += '</tbody>\\n          </table></div>';
         statsHTML += '<div class="content-card"><h4 style="margin-bottom:10px;">📋 Crédits impayés par client</h4><table class="data-table"><thead><tr><th>Client</th><th>Montant (MAD)</th></tr></thead><tbody>';
         var creditsArray = Object.entries(creditsImpayesParClient).sort((a,b) => b[1] - a[1]);
-        if (creditsArray.length > 0) {
-            creditsArray.slice(0, 10).forEach(c => { statsHTML += `<tr><td>${c[0]}</td><td style="color:#ef4444;font-weight:600;">${c[1].toFixed(2)}</td></tr>`; });
-        } else {
-            statsHTML += '<tr><td colspan="2">Aucun crédit impayé</td></tr>';
-        }
-        statsHTML += '</tbody></table></div>';
+        if (creditsArray.length > 0) creditsArray.slice(0, 10).forEach(c => { statsHTML += `<tr><td>${escapeHtml(c[0])}</td><td style="color:#ef4444;font-weight:600;">${c[1].toFixed(2)}</td></tr>`; });
+        else statsHTML += '<tr><td colspan="2">Aucun crédit impayé</td></tr>';
+        statsHTML += '</tbody>\\n          </table></div>';
         statsHTML += '</div>';
 
-        // Section personnel (si existant)
         if (personnel.length > 0) {
             statsHTML += '<div class="content-card" style="margin-bottom:20px;"><h4 style="margin-bottom:10px;">👥 Effectif</h4><table class="data-table"><thead><tr><th>Rôle</th><th>Effectif</th><th>Total salaires</th></tr></thead><tbody>';
-            var effectifParRole = {};
-            var salaireParRole = {};
+            var effectifParRole = {}, salaireParRole = {};
             personnel.forEach(p => {
                 var role = p.role || 'Non défini';
                 effectifParRole[role] = (effectifParRole[role] || 0) + 1;
                 salaireParRole[role] = (salaireParRole[role] || 0) + (p.salaire || 0);
             });
             Object.keys(effectifParRole).forEach(role => {
-                statsHTML += `<tr><td>${role}</td><td>${effectifParRole[role]}</td><td>${salaireParRole[role].toFixed(2)} MAD</td></tr>`;
+                statsHTML += `<tr><td>${escapeHtml(role)}</td><td>${effectifParRole[role]}</td><td>${salaireParRole[role].toFixed(2)} MAD</td></tr>`;
             });
-            statsHTML += '</tbody></table></div>';
+            statsHTML += '</tbody>\\n          </table></div>';
         }
 
         statsContent.innerHTML = statsHTML;
 
-        // Tracer les graphiques (Chart.js)
         setTimeout(() => {
             try {
-                // Courbe CA
                 var ctx1 = document.getElementById('salesChart')?.getContext('2d');
-                if (ctx1) {
-                    statsCharts.sales = new Chart(ctx1, {
-                        type: 'line',
-                        data: {
-                            labels: Object.keys(dailySales),
-                            datasets: [{
-                                label: 'CA (MAD)',
-                                data: Object.values(dailySales),
-                                borderColor: '#f39c12',
-                                backgroundColor: 'rgba(243,156,18,0.1)',
-                                fill: true,
-                                tension: 0.3,
-                                pointRadius: 3,
-                                pointBackgroundColor: '#f39c12'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: { y: { beginAtZero: true, ticks: { callback: v => v + ' MAD' } } }
-                        }
-                    });
-                }
-
-                // Méthodes de paiement
+                if (ctx1) statsCharts.sales = new Chart(ctx1, { type: 'line', data: { labels: Object.keys(dailySales), datasets: [{ label: 'CA (MAD)', data: Object.values(dailySales), borderColor: '#A67C52', backgroundColor: 'rgba(166,124,82,0.1)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#A67C52' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => v + ' MAD' } } } } });
                 var ctx2 = document.getElementById('paymentChart')?.getContext('2d');
-                if (ctx2) {
-                    statsCharts.payment = new Chart(ctx2, {
-                        type: 'doughnut',
-                        data: {
-                            labels: Object.keys(paymentMethods),
-                            datasets: [{
-                                data: Object.values(paymentMethods),
-                                backgroundColor: ['#f39c12', '#4f46e5', '#16a34a', '#ef4444', '#d97706']
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { position: 'bottom' } }
-                        }
-                    });
-                }
-
-                // Top catégories (barres)
+                if (ctx2) statsCharts.payment = new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(paymentMethods), datasets: [{ data: Object.values(paymentMethods), backgroundColor: ['#A67C52', '#4f46e5', '#16a34a', '#ef4444', '#d97706'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
                 var ctx3 = document.getElementById('categoryChart')?.getContext('2d');
-                if (ctx3) {
-                    statsCharts.category = new Chart(ctx3, {
-                        type: 'bar',
-                        data: {
-                            labels: topCategories.map(c => c[0]),
-                            datasets: [{
-                                label: 'CA (MAD)',
-                                data: topCategories.map(c => c[1]),
-                                backgroundColor: '#f39c12',
-                                borderRadius: 5
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: { y: { beginAtZero: true, ticks: { callback: v => v + ' MAD' } } }
-                        }
-                    });
-                }
-
-                // Dépenses par catégorie
+                if (ctx3) statsCharts.category = new Chart(ctx3, { type: 'bar', data: { labels: topCategories.map(c => c[0]), datasets: [{ label: 'CA (MAD)', data: topCategories.map(c => c[1]), backgroundColor: '#A67C52', borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => v + ' MAD' } } } } });
                 var ctx4 = document.getElementById('depensesChart')?.getContext('2d');
-                if (ctx4) {
-                    var depCatLabels = Object.keys(depensesByCat);
-                    var depCatData = Object.values(depensesByCat);
-                    statsCharts.depenses = new Chart(ctx4, {
-                        type: 'bar',
-                        data: {
-                            labels: depCatLabels,
-                            datasets: [{
-                                label: 'Dépenses (MAD)',
-                                data: depCatData,
-                                backgroundColor: '#ef4444',
-                                borderRadius: 5
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: { y: { beginAtZero: true, ticks: { callback: v => v + ' MAD' } } }
-                        }
-                    });
-                }
-            } catch(chartError) {
-                console.error('Erreur Chart.js :', chartError);
-            }
+                if (ctx4) statsCharts.depenses = new Chart(ctx4, { type: 'bar', data: { labels: Object.keys(depensesByCat), datasets: [{ label: 'Dépenses (MAD)', data: Object.values(depensesByCat), backgroundColor: '#ef4444', borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => v + ' MAD' } } } } });
+            } catch(chartError) { console.error('Erreur Chart.js :', chartError); }
         }, 200);
 
     } catch(e) {
         console.error('Erreur statistiques :', e);
-        statsContent.innerHTML = `
-        <div style="text-align:center; padding:40px;">
-            <i class="fas fa-exclamation-triangle" style="font-size:2rem; color:#ef4444;"></i>
-            <p style="color:#ef4444; margin-top:10px;">Erreur lors du chargement des statistiques</p>
-            <p style="color:#64748b; font-size:0.85rem; margin-top:5px;">${e.message || e}</p>
-        </div>`;
+        statsContent.innerHTML = `<div style="text-align:center; padding:40px;"><i class="fas fa-exclamation-triangle" style="font-size:2rem; color:#ef4444;"></i><p style="color:#ef4444; margin-top:10px;">Erreur lors du chargement des statistiques</p><p style="color:#64748b; font-size:0.85rem;">${e.message || e}</p></div>`;
     }
 }
 
 function buildStatCard(label, value, icon, bgColor, iconColor) {
-    return `
-    <div class="stat-card">
-        <div class="stat-icon" style="background:${bgColor};">
-            <i class="fas ${icon}" style="color:${iconColor};"></i>
-        </div>
-        <div class="stat-info">
-            <span class="stat-label">${label}</span>
-            <span class="stat-value" style="color:${value.includes('-') ? '#ef4444' : '#1e293b'}; white-space: normal; word-break: break-word;">${value}</span>
-        </div>
-    </div>`;
+    return `<div class="stat-card"><div class="stat-icon" style="background:${bgColor};"><i class="fas ${icon}" style="color:${iconColor};"></i></div><div class="stat-info"><span class="stat-label">${escapeHtml(label)}</span><span class="stat-value" style="color:${value.includes('-') ? '#ef4444' : '#1e293b'};">${escapeHtml(value)}</span></div></div>`;
 }
+
+console.log('☕ Alma Coffee Shop - Statistics JS prêt');
